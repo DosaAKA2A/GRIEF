@@ -222,6 +222,7 @@ body {
   margin-top: 0.15rem;
 }
 .jugador .rango-nombre { color: var(--rango); font-weight: 600; }
+.jugador .kda { color: var(--hueso); opacity: 0.85; font-size: 0.75rem; }
 .jugador .peak { color: var(--apagado); font-size: 0.75rem; margin-left: auto; }
 
 .jugador .rr-barra {

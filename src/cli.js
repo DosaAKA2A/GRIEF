@@ -13,9 +13,9 @@ function pad(s, n) {
 function printMatch({ label, rows }) {
   console.log(`\nFase: ${label} — ${rows.length} jugadores\n`);
   console.log(
-    pad("EQUIPO", 8) + pad("JUGADOR", 26) + pad("AGENTE", 14) + pad("RANGO", 16) + pad("RR", 5) + "PEAK"
+    pad("EQUIPO", 8) + pad("JUGADOR", 26) + pad("AGENTE", 14) + pad("RANGO", 16) + pad("RR", 5) + pad("KDA", 6) + "PEAK"
   );
-  console.log("-".repeat(75));
+  console.log("-".repeat(81));
   for (const r of rows) {
     console.log(
       pad(r.team, 8) +
@@ -23,6 +23,7 @@ function printMatch({ label, rows }) {
         pad(r.agent, 14) +
         pad(r.tierLabel, 16) +
         pad(r.rr, 5) +
+        pad(r.kda ? r.kda.kda.toFixed(2) : "-", 6) +
         r.peakLabel
     );
   }

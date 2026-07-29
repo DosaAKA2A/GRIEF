@@ -54,6 +54,11 @@ function filaJugador(r) {
 
   const linea2 = el("div", "linea2");
   linea2.append(el("span", "rango-nombre", r.tierLabel));
+  if (r.kda) {
+    const kda = el("span", "kda", "KDA " + r.kda.kda.toFixed(2));
+    kda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas competitivas`;
+    linea2.append(kda);
+  }
   if (r.peak > r.tier) linea2.append(el("span", "peak", "Peak " + r.peakLabel));
 
   const barra = el("div", "rr-barra");

@@ -133,6 +133,17 @@ export class Tracker extends EventEmitter {
     const rows = await this.#enrich(match.players);
     this.#sig = sig;
     this.emit("match", { phase: match.phase, label: PHASE_LABELS[match.phase], rows });
+    // El KDA de las ultimas 10 competitivas es lento (match-details pesa);
+    // se rellena en segundo plano y se re-emite. Con cache, casi siempre vuela.
+    this.#fillKda(rows, sig, match.phase);
+  }
+
+  async #fillKda(rows, sig, phase) {
+    const api = this.api;
+    const kdas = await Promise.all(rows.map((r) => api.getKda(r.puuid).catch(() => null)));
+    if (this.#sig !== sig) return; // la partida ya cambio, no pisamos nada
+    rows.forEach((r, i) => (r.kda = kdas[i]));
+    this.emit("match", { phase, label: PHASE_LABELS[phase], rows });
   }
 
   async #fetchMatch() {
@@ -170,6 +181,7 @@ export class Tracker extends EventEmitter {
         rr: mmr.rr,
         peak: mmr.peakTier,
         peakLabel: tierName(mmr.peakTier),
+        kda: null, // se rellena en segundo plano (#fillKda)
         me: p.Subject === this.api.puuid,
       };
     });

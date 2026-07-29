@@ -17,7 +17,9 @@ npm run ui          # UI en el navegador (se abre sola): http://127.0.0.1:4327
 ```
 
 - En seleccion de agentes muestra tu equipo (5) y refresca con cada pick.
-- En partida muestra los 10 con equipo, agente, rango actual, RR y peak.
+- En partida muestra los 10 con equipo, agente, rango actual, RR, peak y KDA
+  de las ultimas 10 competitivas: (K+A)/D. El KDA llega unos segundos despues
+  del resto (match-details pesa ~1 MB por partida); con cache es inmediato.
 - Jugadores en modo incognito salen como `(oculto)`.
 - `npm run ui` acepta `--port N` y `--no-open`.
 

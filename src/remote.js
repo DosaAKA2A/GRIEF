@@ -7,6 +7,23 @@ import { TtlCache } from "./cache.js";
 // (cambia tras cada partida); los nombres casi nunca.
 const nameCache = new TtlCache(6 * 3600e3);
 const mmrCache = new TtlCache(10 * 60e3);
+const kdaCache = new TtlCache(30 * 60e3);
+const matchStatsCache = new TtlCache(2 * 3600e3);
+
+// Limitador global para match-details: cada respuesta pesa ~1 MB y sin esto
+// una partida de 10 jugadores dispararia ~100 peticiones a la vez.
+let detailsActive = 0;
+const detailsQueue = [];
+async function withDetailsSlot(fn) {
+  if (detailsActive >= 5) await new Promise((r) => detailsQueue.push(r));
+  detailsActive++;
+  try {
+    return await fn();
+  } finally {
+    detailsActive--;
+    detailsQueue.shift()?.();
+  }
+}
 
 export class RemoteApi {
   constructor({ region, shard, tokens, clientVersion }) {
@@ -99,5 +116,50 @@ export class RemoteApi {
       if (err instanceof HttpError) return { currentTier: 0, rr: 0, peakTier: 0, error: err.status };
       throw err;
     }
+  }
+
+  // IDs de las ultimas partidas competitivas del jugador.
+  async getHistory(puuid, count = 10) {
+    const res = await this.#tryGet(
+      `${this.pd}/match-history/v1/history/${puuid}?startIndex=0&endIndex=${count}&queue=competitive`
+    );
+    return (res?.History ?? []).map((h) => h.MatchID);
+  }
+
+  // K/D/A de todos los jugadores de una partida, cacheado por MatchID.
+  // El detalle completo pesa ~1 MB; solo guardamos lo que usamos.
+  async getMatchStats(matchId) {
+    const hit = matchStatsCache.get(matchId);
+    if (hit !== undefined) return hit;
+    const res = await withDetailsSlot(() => this.#get(`${this.pd}/match-details/v1/matches/${matchId}`));
+    const stats = {};
+    for (const p of res.players ?? []) {
+      stats[p.subject] = { k: p.stats?.kills ?? 0, d: p.stats?.deaths ?? 0, a: p.stats?.assists ?? 0 };
+    }
+    matchStatsCache.set(matchId, stats);
+    return stats;
+  }
+
+  // KDA agregado de las ultimas partidas competitivas: (K+A)/D.
+  // null si el jugador no tiene historial accesible.
+  async getKda(puuid, count = 10) {
+    const hit = kdaCache.get(puuid);
+    if (hit !== undefined) return hit;
+    const ids = await this.getHistory(puuid, count);
+    const perMatch = await Promise.all(ids.map((id) => this.getMatchStats(id).catch(() => null)));
+    let kills = 0, deaths = 0, assists = 0, games = 0;
+    for (const m of perMatch) {
+      const s = m?.[puuid];
+      if (!s) continue;
+      kills += s.k;
+      deaths += s.d;
+      assists += s.a;
+      games++;
+    }
+    const out = games
+      ? { kda: (kills + assists) / Math.max(1, deaths), kills, deaths, assists, games }
+      : null;
+    kdaCache.set(puuid, out);
+    return out;
   }
 }
