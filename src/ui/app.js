@@ -49,6 +49,14 @@ function filaJugador(r) {
   li.style.setProperty("--rango", colorRango(r.tier));
 
   const espina = el("i", "espina");
+  const retrato = el("div", "retrato");
+  if (r.agentId) {
+    const cara = el("img", "retrato-img");
+    cara.src = `agentes/${r.agentId}.png`;
+    cara.alt = "";
+    cara.onerror = () => cara.remove(); // agente nuevo sin icono local: hueco limpio
+    retrato.append(cara);
+  }
   const insignia = el("div", "insignia");
   const icono = iconoRango(r.tier, "insignia-img");
   if (icono) insignia.append(icono);
@@ -93,7 +101,7 @@ function filaJugador(r) {
   barra.append(relleno);
 
   cuerpo.append(linea1, linea2, barra);
-  li.append(espina, insignia, cuerpo);
+  li.append(espina, retrato, insignia, cuerpo);
   return li;
 }
 

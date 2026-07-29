@@ -217,6 +217,7 @@ export class Tracker extends EventEmitter {
         incognito,
         name: incognito ? "(oculto)" : names.get(p.Subject) ?? p.Subject.slice(0, 8) + "...",
         agent: agents[i],
+        agentId: (p.CharacterID ?? "").toLowerCase() || null,
         tier: mmr.currentTier,
         tierLabel: tierName(mmr.currentTier),
         rr: mmr.rr,

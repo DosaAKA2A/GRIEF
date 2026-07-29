@@ -160,6 +160,20 @@ body {
   background: var(--rango);
 }
 
+/* Retrato del agente: la identidad de la fila, pegado a la espina */
+.jugador .retrato {
+  flex: 0 0 3.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+.jugador .retrato-img {
+  width: 3.4rem;
+  height: 3.4rem;
+  object-fit: cover;
+}
+
 /* Insignia oficial del rango: el ancla visual de cada fila */
 .jugador .insignia {
   flex: 0 0 3.4rem;
