@@ -34,11 +34,24 @@ function el(tag, className, text) {
   return node;
 }
 
+// Iconos oficiales en /rangos/{tier}.png; existen del 3 (Hierro 1) al 27
+// (Radiante). Sin rango (0-2) no tiene icono.
+function iconoRango(tier, clase) {
+  if (tier < 3 || tier > 27) return null;
+  const img = el("img", clase);
+  img.src = `rangos/${tier}.png`;
+  img.alt = "";
+  return img;
+}
+
 function filaJugador(r) {
   const li = el("li", "jugador");
   li.style.setProperty("--rango", colorRango(r.tier));
 
   const espina = el("i", "espina");
+  const insignia = el("div", "insignia");
+  const icono = iconoRango(r.tier, "insignia-img");
+  if (icono) insignia.append(icono);
   const cuerpo = el("div", "cuerpo");
 
   const linea1 = el("div", "linea1");
@@ -59,7 +72,13 @@ function filaJugador(r) {
     kda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas competitivas`;
     linea2.append(kda);
   }
-  if (r.peak > r.tier) linea2.append(el("span", "peak", "Peak " + r.peakLabel));
+  if (r.peak > r.tier) {
+    const peak = el("span", "peak", "Peak ");
+    const peakIcono = iconoRango(r.peak, "peak-img");
+    if (peakIcono) peak.append(peakIcono);
+    peak.append(document.createTextNode(" " + r.peakLabel));
+    linea2.append(peak);
+  }
 
   const barra = el("div", "rr-barra");
   const relleno = el("i");
@@ -67,7 +86,7 @@ function filaJugador(r) {
   barra.append(relleno);
 
   cuerpo.append(linea1, linea2, barra);
-  li.append(espina, cuerpo);
+  li.append(espina, insignia, cuerpo);
   return li;
 }
 

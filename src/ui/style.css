@@ -160,6 +160,26 @@ body {
   background: var(--rango);
 }
 
+/* Insignia oficial del rango: el ancla visual de cada fila */
+.jugador .insignia {
+  flex: 0 0 3.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.jugador .insignia-img {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+
+.jugador .peak-img {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  vertical-align: -0.2rem;
+}
+
 .jugador .cuerpo {
   flex: 1;
   min-width: 0;
