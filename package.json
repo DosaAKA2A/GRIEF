@@ -1,15 +1,41 @@
 {
-  "name": "valo-tracker",
+  "name": "grief",
   "version": "0.1.0",
-  "description": "Tracker ligero de Valorant: stats de los 10 jugadores antes de empezar la partida, via API local del cliente de Riot",
+  "description": "GRIEF: tracker ligero de Valorant via API local del cliente de Riot",
   "type": "module",
-  "main": "src/cli.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "node src/cli.js",
     "watch": "node src/cli.js --watch",
-    "ui": "node src/server.js"
+    "ui": "node src/server.js",
+    "app": "electron .",
+    "dist": "electron-builder --win"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.estudioiris.grief",
+    "productName": "GRIEF",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**",
+      "src/**",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
   }
 }

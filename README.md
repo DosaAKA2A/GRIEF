@@ -1,10 +1,10 @@
-# valo-tracker
+# GRIEF
 
 Tracker ligero de Valorant: stats de los jugadores de tu partida antes de empezar, leyendo la API local del cliente de Riot. Sin overlay in-game, sin tocar el proceso del juego, sin Overwolf.
 
 ## Estado
 
-Fase 2: consola + UI para segunda pantalla, con websocket local y cache.
+Fase 3: app de escritorio (Electron) + consola + UI en navegador, con websocket local, cache y senales de cheater/smurf/booster.
 
 ## Uso
 
@@ -14,6 +14,8 @@ Con el cliente de Riot abierto (y VALORANT arrancado al menos una vez):
 npm start           # una pasada por consola: muestra la partida actual si la hay
 npm run watch       # consola en vivo: detecta partida al instante (websocket)
 npm run ui          # UI en el navegador (se abre sola): http://127.0.0.1:4327
+npm run app         # la app de escritorio (ventana propia, puerto 43270)
+npm run dist        # construye instalador NSIS + exe portable en dist/
 ```
 
 - En seleccion de agentes muestra tu equipo (5) y refresca con cada pick.
@@ -29,10 +31,11 @@ npm run ui          # UI en el navegador (se abre sola): http://127.0.0.1:4327
 2. `src/localapi.js` — basic auth contra `https://127.0.0.1:{port}`: tokens (access + entitlements + PUUID), version del cliente, y region/shard desde el log de VALORANT.
 3. `src/remote.js` — con esos tokens consulta `glz` (pregame / core-game) y `pd` (name-service, MMR), con cache TTL por PUUID (`src/cache.js`: nombres 6 h, MMR 10 min).
 4. `src/ws.js` — cliente WebSocket minimo (RFC 6455 sobre `node:tls`) contra el Riot Client; suscrito al riot-messaging-service, avisa de pregame/partida sin sondear.
-5. `src/tracker.js` — el nucleo: conecta, detecta (websocket + sondeo de respaldo), enriquece jugadores y emite eventos.
-6. `src/cli.js` — consumidor de consola. `src/server.js` + `src/ui/` — servidor local con SSE y la interfaz.
+5. `src/tracker.js` — el nucleo: conecta, detecta (websocket + sondeo de respaldo), enriquece jugadores, calcula senales y emite eventos.
+6. `src/cli.js` — consumidor de consola. `src/serve.js` + `src/ui/` — servidor local con SSE y la interfaz (`src/server.js` es el CLI).
+7. `electron/main.js` — la app de escritorio: misma UI en ventana propia.
 
-Sin dependencias npm: Node >= 20 y modulos nativos (`node:https`, `node:tls`, `node:http`).
+El tracker en si sigue sin dependencias npm (Node >= 20 y modulos nativos); electron y electron-builder son solo devDependencies para la app.
 
 ## Limitaciones conocidas
 

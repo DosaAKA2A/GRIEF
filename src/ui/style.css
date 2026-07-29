@@ -38,9 +38,19 @@ body {
   font-stretch: condensed;
   font-weight: 700;
   font-size: 1.05rem;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.2em;
+  color: var(--rojo);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
 }
-.marca span { color: var(--rojo); }
+.marca .marca-sub {
+  color: var(--apagado);
+  font-weight: 400;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 
 .fase {
   display: flex;
