@@ -349,12 +349,18 @@ body::before {
   margin-top: 0.22rem;
   min-height: 1.05rem;
   white-space: nowrap;
-  overflow: hidden;
   font-family: var(--mono);
   font-size: 0.64rem;
   letter-spacing: 0.05em;
 }
-.jugador .linea2 > span { white-space: nowrap; }
+/* La parte informativa cede (ellipsis); las señales de la derecha, jamas */
+.jugador .l2-izq {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jugador .l2-izq > span + span { margin-left: 0.7rem; }
 .jugador .rango-nombre {
   color: var(--rango);
   font-weight: 600;

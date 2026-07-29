@@ -102,18 +102,20 @@ function filaJugador(r, juego) {
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
 
+  // La info de rango cede con puntos suspensivos; las señales NUNCA se cortan.
   const linea2 = el("div", "linea2");
-  if (r.tierLabel) linea2.append(el("span", "rango-nombre", r.tierLabel));
+  const izq = el("span", "l2-izq");
+  if (r.tierLabel) izq.append(el("span", "rango-nombre", r.tierLabel));
   if (r.peak > r.tier) {
     const peak = el("span", "peak", "Peak ");
     const peakIcono = iconoRango(r.peak, "peak-img");
     if (peakIcono) peak.append(peakIcono);
     peak.append(document.createTextNode(" " + r.peakLabel));
-    linea2.append(peak);
+    izq.append(peak);
   }
-  if (r.level != null) linea2.append(el("span", "nivel", `Nv ${r.level}`));
-  if (r.linea2extra) linea2.append(el("span", "extra", r.linea2extra));
-  // Señales compactas, ancladas a la derecha de la linea del rango.
+  if (r.level != null) izq.append(el("span", "nivel", `Nv ${r.level}`));
+  if (r.linea2extra) izq.append(el("span", "extra", r.linea2extra));
+  linea2.append(izq);
   if (r.alertas?.length) {
     const flags = el("span", "flags");
     for (const a of r.alertas) {
