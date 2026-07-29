@@ -181,7 +181,7 @@ export class Tracker extends EventEmitter {
         rr: mmr.rr,
         peak: mmr.peakTier,
         peakLabel: tierName(mmr.peakTier),
-        kda: null, // se rellena en segundo plano (#fillKda)
+        kda: this.api.peekKda(p.Subject), // lo cacheado ya; el resto lo trae #fillKda
         me: p.Subject === this.api.puuid,
       };
     });

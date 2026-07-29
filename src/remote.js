@@ -140,6 +140,12 @@ export class RemoteApi {
     return stats;
   }
 
+  // Version sincrona: solo lo que ya este en cache (para no perder el KDA
+  // al reconstruir filas con cada pick del pregame).
+  peekKda(puuid) {
+    return kdaCache.get(puuid) ?? null;
+  }
+
   // KDA agregado de las ultimas partidas competitivas: (K+A)/D.
   // null si el jugador no tiene historial accesible.
   async getKda(puuid, count = 10) {
