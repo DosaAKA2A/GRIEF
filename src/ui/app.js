@@ -89,17 +89,6 @@ function filaJugador(r, juego) {
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
-  if (r.party) {
-    li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
-    const chip = el("span", `party party-c${((r.party - 1) % 5) + 1}`, "P" + r.party);
-    chip.title = `Party de ${r.partySize} jugadores`;
-    linea1.append(chip);
-  }
-  for (const a of r.alertas ?? []) {
-    const chip = el("span", "alerta " + a.tipo, a.texto);
-    chip.title = a.detalle;
-    linea1.append(chip);
-  }
   if (r.rr != null) {
     const rr = el("span", "rr");
     rr.append(el("b", null, String(r.rr)));
@@ -124,6 +113,21 @@ function filaJugador(r, juego) {
     peak.append(document.createTextNode(" " + r.peakLabel));
     linea2.append(peak);
   }
+  // Chips anclados a la derecha: misma posicion en todas las filas, la
+  // linea del nombre nunca se comprime por llevar badges.
+  const chips = el("span", "chips");
+  if (r.party) {
+    li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
+    const chip = el("span", `party party-c${((r.party - 1) % 5) + 1}`, "P" + r.party);
+    chip.title = `Party de ${r.partySize} jugadores`;
+    chips.append(chip);
+  }
+  for (const a of r.alertas ?? []) {
+    const chip = el("span", "alerta " + a.tipo, a.texto);
+    chip.title = a.detalle;
+    chips.append(chip);
+  }
+  if (chips.childNodes.length) linea2.append(chips);
 
   cuerpo.append(linea1, linea2);
   if (r.rr != null) {

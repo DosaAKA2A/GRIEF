@@ -364,9 +364,10 @@ body::before {
 .jugador .linea2 {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.15rem 0.75rem;
   margin-top: 0.2rem;
+  min-height: 1.15rem; /* misma altura de fila con o sin chips */
   font-family: var(--mono);
   font-size: 0.64rem;
   letter-spacing: 0.05em;
@@ -380,7 +381,15 @@ body::before {
 }
 .jugador .kda { color: var(--apagado); }
 .jugador .nivel { color: var(--tenue); }
-.jugador .peak { color: var(--tenue); margin-left: auto; }
+.jugador .peak { color: var(--tenue); }
+
+/* Zona fija de badges: siempre ancladas a la derecha de la linea del rango */
+.jugador .chips {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
 
 .jugador .rr-barra {
   height: 3px;
