@@ -1,6 +1,6 @@
 /* GRIEF — identidad tipografica de Iris sobre el mundo Valorant.
-   Clash Display: marca y numeros grandes. Geist Mono: microcopy tecnico en
-   mayusculas con tracking. Inter: nombres y texto. */
+   Inter (700 con tracking) para marca y numeros grandes; Geist Mono para el
+   microcopy tecnico en mayusculas; Inter regular para nombres y texto. */
 :root {
   --fondo: #0f1923;
   --panel: #16222e;
@@ -11,7 +11,7 @@
   --tenue: #4d5a66;
   --rojo: #ff4655;
   --teal: #35c9ac;
-  --display: "Clash Display", "Segoe UI", sans-serif;
+  --display: "Inter", "Segoe UI", system-ui, sans-serif;
   --mono: "Geist Mono", Consolas, monospace;
   --sans: "Inter", "Segoe UI", system-ui, sans-serif;
 }
@@ -141,7 +141,7 @@ body::before {
 
 .vacio-titulo {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.5rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -282,9 +282,9 @@ body::before {
 
 .jugador .agente {
   font-family: var(--display);
-  font-weight: 600;
-  font-size: 1rem;
-  letter-spacing: 0.03em;
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 .jugador .agente.sin-pick {
@@ -388,7 +388,8 @@ body::before {
   font-weight: 700;
   font-size: 1.25rem;
   line-height: 1.1;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 .jugador .stat b.bien { color: var(--teal); }
 .jugador .stat b.mal { color: var(--rojo); }

@@ -6,15 +6,13 @@
   <title>GRIEF — lee la partida antes de jugarla</title>
   <meta name="description" content="Tracker de escritorio para Valorant, League of Legends y Dota 2: rangos, KDA, parties y señales de smurfs antes de que empiece la partida. Sin overlay, sin Overwolf.">
   <style>
-    @font-face { font-family: "Clash Display"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/clash-display-500.woff2") format("woff2"); }
-    @font-face { font-family: "Clash Display"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/clash-display-600.woff2") format("woff2"); }
-    @font-face { font-family: "Clash Display"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/clash-display-700.woff2") format("woff2"); }
     @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/geist-mono-400.woff2") format("woff2"); }
     @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/geist-mono-500.woff2") format("woff2"); }
     @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/geist-mono-600.woff2") format("woff2"); }
     @font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/inter-400.woff2") format("woff2"); }
     @font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/inter-500.woff2") format("woff2"); }
     @font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/inter-600.woff2") format("woff2"); }
+    @font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/inter-700.woff2") format("woff2"); }
 
     :root {
       --fondo: #0f1923;
@@ -26,7 +24,7 @@
       --tenue: #4d5a66;
       --rojo: #ff4655;
       --teal: #35c9ac;
-      --display: "Clash Display", "Segoe UI", sans-serif;
+      --display: "Inter", "Segoe UI", system-ui, sans-serif;
       --mono: "Geist Mono", Consolas, monospace;
       --sans: "Inter", "Segoe UI", system-ui, sans-serif;
     }
@@ -85,8 +83,8 @@
       color: var(--teal); margin-bottom: 1.2rem;
     }
     h1 {
-      font-family: var(--display); font-weight: 600; font-size: clamp(2rem, 5vw, 3.2rem);
-      letter-spacing: 0.02em; line-height: 1.15; max-width: 21ch; margin: 0 auto;
+      font-family: var(--display); font-weight: 700; font-size: clamp(2rem, 5vw, 3.2rem);
+      letter-spacing: -0.02em; line-height: 1.12; max-width: 21ch; margin: 0 auto;
     }
     h1 em { font-style: normal; color: var(--rojo); }
     .hero p.sub {
@@ -120,7 +118,7 @@
       font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.28em; text-transform: uppercase;
       color: var(--rojo); margin-bottom: 0.8rem;
     }
-    h2 { font-family: var(--display); font-weight: 600; font-size: 1.7rem; letter-spacing: 0.02em; line-height: 1.2; }
+    h2 { font-family: var(--display); font-weight: 700; font-size: 1.7rem; letter-spacing: -0.01em; line-height: 1.2; }
 
     /* Juegos */
     .juegos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2rem; }
@@ -130,7 +128,7 @@
       clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
       padding: 1.4rem 1.5rem 1.6rem;
     }
-    .juego .titulo { font-family: var(--display); font-weight: 600; font-size: 1.05rem; letter-spacing: 0.06em; }
+    .juego .titulo { font-family: var(--display); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.05em; }
     .juego .estado-j { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 0.14rem 0.45rem; border: 1px solid; margin-left: 0.6rem; vertical-align: 0.15em; }
     .estado-j.completo { color: var(--teal); border-color: var(--teal); }
     .estado-j.parcial { color: #e8a33c; border-color: #e8a33c; }
