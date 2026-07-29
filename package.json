@@ -1,0 +1,14 @@
+{
+  "name": "valo-tracker",
+  "version": "0.1.0",
+  "description": "Tracker ligero de Valorant: stats de los 10 jugadores antes de empezar la partida, via API local del cliente de Riot",
+  "type": "module",
+  "main": "src/cli.js",
+  "scripts": {
+    "start": "node src/cli.js",
+    "watch": "node src/cli.js --watch"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
