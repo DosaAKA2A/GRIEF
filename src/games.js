@@ -34,6 +34,9 @@ export class MultiTracker extends EventEmitter {
         snap.phase = m.phase;
         snap.label = m.label;
         snap.rows = m.rows;
+        snap.mapa = m.mapa ?? null;
+        snap.servidor = m.servidor ?? null;
+        snap.lado = m.lado ?? null;
         snap.updatedAt = Date.now();
         this.#activo = game;
         this.#push();
@@ -74,6 +77,9 @@ export class MultiTracker extends EventEmitter {
         phase: s.phase,
         label: s.label,
         rows: s.rows,
+        mapa: s.mapa ?? null,
+        servidor: s.servidor ?? null,
+        lado: s.lado ?? null,
         updatedAt: s.updatedAt,
       };
     }

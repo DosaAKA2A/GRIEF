@@ -180,6 +180,29 @@ function pintar(estado) {
 
   $("fase-texto").textContent = FASES[estado.phase] ?? estado.label ?? "";
 
+  // Banda de contexto: mapa+servidor (Valorant) o bando (LoL / Dota 2).
+  const banda = $("banda");
+  banda.hidden = false;
+  banda.style.backgroundImage = "";
+  if (estado.game === "valorant" && estado.mapa) {
+    banda.className = "banda";
+    banda.style.backgroundImage =
+      `linear-gradient(90deg, rgba(15,25,35,0.95) 18%, rgba(15,25,35,0.35) 60%, rgba(15,25,35,0.75)), url("valorant/mapas/${estado.mapa.slug}.png")`;
+    $("banda-titulo").textContent = estado.mapa.nombre ?? "";
+    $("banda-sub").textContent = estado.servidor ? `Servidor · ${estado.servidor}` : "";
+  } else if (estado.game === "lol" && estado.lado) {
+    banda.className = "banda lado-" + estado.lado;
+    $("banda-titulo").textContent = estado.lado === "azul" ? "Lado azul" : "Lado rojo";
+    $("banda-sub").textContent = estado.lado === "azul" ? "Mitad inferior del mapa" : "Mitad superior del mapa";
+  } else if (estado.game === "dota") {
+    const l = estado.lado;
+    banda.className = "banda " + (l === "radiant" ? "lado-radiant" : l === "dire" ? "lado-dire" : "lado-neutro");
+    $("banda-titulo").textContent = l === "radiant" ? "Radiant" : l === "dire" ? "Dire" : "Lobby detectado";
+    $("banda-sub").textContent = l ? "" : "Bando por determinar";
+  } else {
+    banda.hidden = true;
+  }
+
   // Tu equipo: el que contiene tu fila; sin ella, el equipo de la primera.
   const miFila = estado.rows.find((r) => r.me);
   const miEquipo = miFila ? miFila.team : estado.rows[0].team;

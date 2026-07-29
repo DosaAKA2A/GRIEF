@@ -10,7 +10,14 @@ import { readLockfile } from "./lockfile.js";
 import { LocalApi, getRegionShard } from "./localapi.js";
 import { RemoteApi } from "./remote.js";
 import { RiotWs } from "./ws.js";
-import { tierName, agentName } from "./data.js";
+import { tierName, agentName, mapInfo } from "./data.js";
+
+// Ciudad legible del GamePodID ("...eu-gp-madrid-1" -> "Madrid").
+function podCiudad(pod) {
+  const m = /-gp-([a-z-]+?)-\d+/.exec(pod ?? "");
+  if (!m) return null;
+  return m[1].split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+}
 
 const PHASE_LABELS = {
   core: "EN PARTIDA",
@@ -214,15 +221,16 @@ export class Tracker extends EventEmitter {
       "|" +
       match.players.map((p) => `${p.Subject}:${p.CharacterID ?? ""}:${p.TeamID ?? ""}`).join(",");
     if (sig === this.#sig) return;
-    const rows = await this.#enrich(match.players);
+    const [rows, mapa] = await Promise.all([this.#enrich(match.players), mapInfo(match.mapId)]);
+    const servidor = podCiudad(match.pod);
     this.#sig = sig;
-    this.emit("match", { phase: match.phase, label: PHASE_LABELS[match.phase], rows });
+    this.emit("match", { phase: match.phase, label: PHASE_LABELS[match.phase], rows, mapa, servidor });
     // El KDA de las ultimas 10 competitivas es lento (match-details pesa);
     // se rellena en segundo plano y se re-emite. Con cache, casi siempre vuela.
-    this.#fillKda(rows, sig, match.phase);
+    this.#fillKda(rows, sig, match.phase, mapa, servidor);
   }
 
-  async #fillKda(rows, sig, phase) {
+  async #fillKda(rows, sig, phase, mapa, servidor) {
     const api = this.api;
     const [kdas, comps] = await Promise.all([
       Promise.all(rows.map((r) => api.getKda(r.puuid).catch(() => null))),
@@ -234,19 +242,19 @@ export class Tracker extends EventEmitter {
       r.comp = comps[i];
       r.alertas = alertas(r);
     });
-    this.emit("match", { phase, label: PHASE_LABELS[phase], rows });
+    this.emit("match", { phase, label: PHASE_LABELS[phase], rows, mapa, servidor });
   }
 
   async #fetchMatch() {
     const core = await this.api.getCoreGame();
-    if (core) return { phase: "core", players: core.Players ?? [] };
+    if (core) return { phase: "core", players: core.Players ?? [], mapId: core.MapID, pod: core.GamePodID };
     const pre = await this.api.getPreGame();
     if (pre) {
       const players = (pre.AllyTeam?.Players ?? []).map((p) => ({
         ...p,
         TeamID: pre.AllyTeam?.TeamID,
       }));
-      return { phase: "pregame", players };
+      return { phase: "pregame", players, mapId: pre.MapID, pod: pre.GamePodID };
     }
     return null;
   }

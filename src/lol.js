@@ -60,11 +60,11 @@ export class LolTracker extends EventEmitter {
     this.emit("status", text);
   }
 
-  #emitIfChanged(phase, label, rows, sigExtra) {
+  #emitIfChanged(phase, label, rows, sigExtra, extra = {}) {
     const sig = phase + "|" + sigExtra;
     if (sig === this.#sig) return;
     this.#sig = sig;
-    this.emit("match", { phase, label, rows });
+    this.emit("match", { phase, label, rows, ...extra });
   }
 
   #noMatch() {
@@ -187,12 +187,22 @@ export class LolTracker extends EventEmitter {
           })
         );
       }
+      // Bando: el activePlayer esta en ORDER (azul, mitad inferior) o CHAOS.
+      let lado = null;
+      if (yo != null) {
+        const mia = live.body.find((p) => {
+          const id = p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagLine ?? ""}`.replace(/#$/, "") : p.summonerName;
+          return id === yo;
+        });
+        if (mia) lado = mia.team === "ORDER" ? "azul" : "rojo";
+      }
       this.#status("LoL: en partida.");
       this.#emitIfChanged(
         "lol-game",
         "EN PARTIDA (LoL)",
         rows,
-        rows.map((r) => `${r.name}:${r.agent}:${r.linea2extra}`).join(",")
+        rows.map((r) => `${r.name}:${r.agent}:${r.linea2extra}`).join(","),
+        { lado }
       );
       return;
     }
@@ -240,12 +250,15 @@ export class LolTracker extends EventEmitter {
         };
       })
     );
+    // team 1 = lado azul (inferior), team 2 = lado rojo (superior)
+    const lado = cs.body.myTeam[0]?.team === 2 ? "rojo" : "azul";
     this.#status("LoL: seleccion de campeones.");
     this.#emitIfChanged(
       "lol-champselect",
       "SELECCION DE CAMPEONES (solo tu equipo)",
       rows,
-      rows.map((r) => `${r.puuid}:${r.agent}`).join(",")
+      rows.map((r) => `${r.puuid}:${r.agent}`).join(","),
+      { lado }
     );
   }
 }

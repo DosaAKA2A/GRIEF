@@ -20,6 +20,27 @@ export function tierName(tier) {
 }
 
 let agentCache = null;
+let mapCache = null;
+
+// Info de mapa a partir del MapID de la partida ("/Game/Maps/Ascent/Ascent").
+// El slug casa con src/ui/valorant/mapas/{slug}.png.
+export async function mapInfo(mapId) {
+  if (!mapId) return null;
+  if (!mapCache) {
+    try {
+      const res = await requestOk("https://valorant-api.com/v1/maps");
+      mapCache = new Map(
+        res.data
+          .filter((m) => m.mapUrl)
+          .map((m) => [m.mapUrl.toLowerCase(), { nombre: m.displayName, slug: m.mapUrl.split("/").pop().toLowerCase() }])
+      );
+    } catch {
+      mapCache = new Map(); // sin red: caemos al nombre crudo del MapID
+    }
+  }
+  const crudo = mapId.split("/").pop();
+  return mapCache.get(mapId.toLowerCase()) ?? { nombre: crudo, slug: crudo.toLowerCase() };
+}
 
 export async function agentName(characterId) {
   if (!characterId) return "-";
