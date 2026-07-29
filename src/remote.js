@@ -9,6 +9,7 @@ const nameCache = new TtlCache(6 * 3600e3);
 const mmrCache = new TtlCache(10 * 60e3);
 const kdaCache = new TtlCache(30 * 60e3);
 const matchStatsCache = new TtlCache(2 * 3600e3);
+const rrCache = new TtlCache(10 * 60e3);
 
 // Limitador global para match-details: cada respuesta pesa ~1 MB y sin esto
 // una partida de 10 jugadores dispararia ~100 peticiones a la vez.
@@ -100,6 +101,8 @@ export class RemoteApi {
       let currentTier = latest?.TierAfterUpdate ?? 0;
       let rr = latest?.RankedRatingAfterUpdate ?? 0;
       let peakTier = 0;
+      let seasonsPlayed = 0;
+      let totalGames = 0;
       const seasons = comp?.SeasonalInfoBySeasonID ?? {};
       for (const s of Object.values(seasons)) {
         const best = s?.Rank ?? 0;
@@ -108,8 +111,11 @@ export class RemoteApi {
         for (const t of Object.keys(wins)) {
           if (Number(t) > peakTier) peakTier = Number(t);
         }
+        const g = s?.NumberOfGames ?? 0;
+        if (g > 0) seasonsPlayed++;
+        totalGames += g;
       }
-      const out = { currentTier, rr, peakTier, games: latest ? undefined : 0 };
+      const out = { currentTier, rr, peakTier, seasonsPlayed, totalGames, games: latest ? undefined : 0 };
       mmrCache.set(puuid, out); // solo cacheamos respuestas buenas, los errores se reintentan
       return out;
     } catch (err) {
@@ -162,6 +168,42 @@ export class RemoteApi {
   // al reconstruir filas con cada pick del pregame).
   peekKda(puuid) {
     return kdaCache.get(puuid) ?? null;
+  }
+
+  peekComp(puuid) {
+    return rrCache.get(puuid) ?? null;
+  }
+
+  // Movimientos de RR recientes: victorias/derrotas y RR medio por victoria.
+  // Un RR medio alto (+24 o mas) delata MMR muy por encima del rango visible.
+  async getRecentComp(puuid, count = 10) {
+    const hit = rrCache.get(puuid);
+    if (hit !== undefined) return hit;
+    const res = await this.#tryGet(
+      `${this.pd}/mmr/v1/players/${puuid}/competitiveupdates?startIndex=0&endIndex=${count}&queue=competitive`
+    );
+    const matches = res?.Matches ?? [];
+    let wins = 0, losses = 0;
+    const gains = [];
+    for (const m of matches) {
+      const rr = m.RankedRatingEarned ?? 0;
+      if (rr > 0) {
+        wins++;
+        gains.push(rr);
+      } else if (rr < 0) {
+        losses++;
+      }
+    }
+    const out = matches.length
+      ? {
+          wins,
+          losses,
+          games: matches.length,
+          avgRrWin: gains.length ? gains.reduce((a, b) => a + b, 0) / gains.length : null,
+        }
+      : null;
+    rrCache.set(puuid, out);
+    return out;
   }
 
   // KDA agregado de las ultimas partidas competitivas: (K+A)/D.

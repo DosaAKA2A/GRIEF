@@ -249,6 +249,7 @@ body {
 }
 .jugador .alerta.cheater { color: var(--rojo); border-color: var(--rojo); }
 .jugador .alerta.booster { color: #e8a33c; border-color: #e8a33c; }
+.jugador .alerta.smurf { color: #5aa9e6; border-color: #5aa9e6; }
 
 .jugador .nivel { color: var(--apagado); font-size: 0.75rem; }
 
