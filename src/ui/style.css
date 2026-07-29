@@ -210,8 +210,10 @@ body::before {
    rango y en la barra de RR. */
 .jugador {
   --rango: var(--apagado);
+  position: relative; /* ancla de la barra de RR al pie */
   display: flex;
   align-items: stretch;
+  min-height: 3.9rem;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid rgba(38, 52, 64, 0.9);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
@@ -266,13 +268,16 @@ body::before {
 .jugador .cuerpo {
   flex: 1;
   min-width: 0;
-  padding: 0.6rem 1rem 0.65rem 0.35rem;
+  padding: 0.6rem 0.75rem 0.65rem 0.35rem;
+  align-self: center;
 }
 
 .jugador .linea1 {
   display: flex;
   align-items: baseline;
   gap: 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .jugador .agente {
@@ -314,29 +319,21 @@ body::before {
   vertical-align: 0.1em;
 }
 
-/* Chips: party rellena, alertas con borde. Todo mono y en mayusculas. */
-.jugador .party {
-  font-family: var(--mono);
-  font-weight: 600;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  padding: 0.12rem 0.38rem;
-  color: var(--fondo);
-  cursor: help;
+/* Señales compactas: ancladas a la derecha de la linea del rango */
+.jugador .flags {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
 }
-.jugador .party-c1 { background: #ffd166; }
-.jugador .party-c2 { background: #06d6a0; }
-.jugador .party-c3 { background: #118ab2; color: var(--hueso); }
-.jugador .party-c4 { background: #ef476f; color: var(--hueso); }
-.jugador .party-c5 { background: #9b5de5; color: var(--hueso); }
-
 .jugador .alerta {
   font-family: var(--mono);
   font-weight: 600;
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 0.14rem 0.42rem;
+  padding: 0.1rem 0.34rem;
   border: 1px solid;
   white-space: nowrap;
   cursor: help;
@@ -345,29 +342,14 @@ body::before {
 .jugador .alerta.booster { color: #e8a33c; border-color: #e8a33c; background: rgba(232, 163, 60, 0.08); }
 .jugador .alerta.smurf { color: #5aa9e6; border-color: #5aa9e6; background: rgba(90, 169, 230, 0.08); }
 
-.jugador .rr { white-space: nowrap; }
-.jugador .rr b {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 1.3rem;
-  letter-spacing: 0.02em;
-}
-.jugador .rr small {
-  font-family: var(--mono);
-  color: var(--tenue);
-  font-size: 0.55rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  margin-left: 0.3rem;
-}
-
 .jugador .linea2 {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.15rem 0.75rem;
-  margin-top: 0.2rem;
-  min-height: 1.15rem; /* misma altura de fila con o sin chips */
+  gap: 0.7rem;
+  margin-top: 0.22rem;
+  min-height: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
   font-family: var(--mono);
   font-size: 0.64rem;
   letter-spacing: 0.05em;
@@ -379,22 +361,56 @@ body::before {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.jugador .kda { color: var(--apagado); }
+.jugador .extra { color: var(--apagado); overflow: hidden; text-overflow: ellipsis; }
 .jugador .nivel { color: var(--tenue); }
 .jugador .peak { color: var(--tenue); }
 
-/* Zona fija de badges: siempre ancladas a la derecha de la linea del rango */
-.jugador .chips {
-  margin-left: auto;
-  display: inline-flex;
+/* Bloques de estadistica: columnas fijas, el numero es el protagonista.
+   KDA y RR viven SIEMPRE en la misma posicion en todas las filas. */
+.jugador .stat {
+  flex: 0 0 4.9rem;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  gap: 0.05rem;
+  border-left: 1px solid rgba(38, 52, 64, 0.7);
+  padding: 0.35rem 0.3rem;
 }
+.jugador .stat b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+.jugador .stat b.bien { color: var(--teal); }
+.jugador .stat b.mal { color: var(--rojo); }
+.jugador .stat b.vacio { color: var(--tenue); font-weight: 500; }
+.jugador .stat small {
+  font-family: var(--mono);
+  color: var(--tenue);
+  font-size: 0.52rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.jugador .stat .sub {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  color: var(--apagado);
+  margin-top: 0.12rem;
+}
+.jugador .stat .sub.alto { color: #e8a33c; font-weight: 600; }
+.jugador .stat-rr { flex-basis: 4.4rem; }
 
 .jugador .rr-barra {
+  position: absolute;
+  left: 5px; /* tras la espina */
+  right: 0;
+  bottom: 0;
   height: 3px;
   background: rgba(38, 52, 64, 0.7);
-  margin-top: 0.5rem;
 }
 .jugador .rr-barra i {
   display: block;

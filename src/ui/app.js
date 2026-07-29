@@ -31,7 +31,8 @@ function colorRango(tier) {
   return "#7a8894";
 }
 
-// Color distintivo por party: lo lleva la espina izquierda y el chip Pn.
+// Color distintivo por party: lo lleva la espina izquierda (mismo color =
+// van juntos). El tamano del grupo queda en el tooltip de la espina.
 const COLORES_PARTY = ["#ffd166", "#06d6a0", "#118ab2", "#ef476f", "#9b5de5"];
 
 const $ = (id) => document.getElementById(id);
@@ -53,12 +54,21 @@ function iconoRango(tier, clase) {
   return img;
 }
 
+// Fila con columnas fijas: [espina][retrato][insignia][identidad][KDA][RR].
+// Cada dato vive SIEMPRE en la misma posicion; ninguna fila cambia de forma
+// por llevar señales o textos largos.
 function filaJugador(r, juego) {
   const rotuloRr = juego === "lol" ? "LP" : "RR";
   const li = el("li", "jugador");
   li.style.setProperty("--rango", colorRango(r.tier));
 
   const espina = el("i", "espina");
+  if (r.party) {
+    li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
+    espina.title = `Party de ${r.partySize} jugadores`;
+    espina.style.cursor = "help";
+  }
+
   const retrato = el("div", "retrato");
   const rutaCara = r.agentIcon ?? (r.agentId ? `agentes/${r.agentId}.png` : null);
   if (rutaCara) {
@@ -68,6 +78,7 @@ function filaJugador(r, juego) {
     cara.onerror = () => cara.remove(); // icono ausente: hueco limpio
     retrato.append(cara);
   }
+
   const insignia = el("div", "insignia");
   if (r.tierIcon) {
     const img = el("img", "insignia-img");
@@ -79,8 +90,9 @@ function filaJugador(r, juego) {
     const icono = iconoRango(r.tier, "insignia-img");
     if (icono) insignia.append(icono);
   }
-  const cuerpo = el("div", "cuerpo");
 
+  // Columna de identidad: quien es (arriba) y que rango tiene (abajo).
+  const cuerpo = el("div", "cuerpo");
   const linea1 = el("div", "linea1");
   const sinPick = !r.agent || r.agent === "-";
   if (!(sinPick && juego === "dota")) {
@@ -89,23 +101,9 @@ function filaJugador(r, juego) {
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
-  if (r.rr != null) {
-    const rr = el("span", "rr");
-    rr.append(el("b", null, String(r.rr)));
-    rr.append(el("small", null, rotuloRr));
-    linea1.append(rr);
-  }
 
   const linea2 = el("div", "linea2");
   if (r.tierLabel) linea2.append(el("span", "rango-nombre", r.tierLabel));
-  if (r.linea2extra) linea2.append(el("span", "kda", r.linea2extra));
-  if (r.kda) {
-    const kda = el("span", "kda", "KDA " + r.kda.kda.toFixed(2));
-    const hs = r.kda.hsRate != null ? ` · HS ${Math.round(r.kda.hsRate * 100)}%` : "";
-    kda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas competitivas${hs}`;
-    linea2.append(kda);
-  }
-  if (r.level != null) linea2.append(el("span", "nivel", `Nivel ${r.level}`));
   if (r.peak > r.tier) {
     const peak = el("span", "peak", "Peak ");
     const peakIcono = iconoRango(r.peak, "peak-img");
@@ -113,36 +111,49 @@ function filaJugador(r, juego) {
     peak.append(document.createTextNode(" " + r.peakLabel));
     linea2.append(peak);
   }
-  // Chips anclados a la derecha: misma posicion en todas las filas, la
-  // linea del nombre nunca se comprime por llevar badges.
-  const chips = el("span", "chips");
-  if (r.party) {
-    li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
-    const chip = el("span", `party party-c${((r.party - 1) % 5) + 1}`, "P" + r.party);
-    chip.title = `Party de ${r.partySize} jugadores`;
-    chips.append(chip);
+  if (r.level != null) linea2.append(el("span", "nivel", `Nv ${r.level}`));
+  if (r.linea2extra) linea2.append(el("span", "extra", r.linea2extra));
+  // Señales compactas, ancladas a la derecha de la linea del rango.
+  if (r.alertas?.length) {
+    const flags = el("span", "flags");
+    for (const a of r.alertas) {
+      const chip = el("span", "alerta " + a.tipo, "¿" + a.texto.replace(/^Posible\s+/i, "") + "?");
+      chip.title = `${a.texto}: ${a.detalle}`;
+      flags.append(chip);
+    }
+    linea2.append(flags);
   }
-  for (const a of r.alertas ?? []) {
-    const chip = el("span", "alerta " + a.tipo, a.texto);
-    chip.title = a.detalle;
-    chips.append(chip);
-  }
-  if (chips.childNodes.length) linea2.append(chips);
-
   cuerpo.append(linea1, linea2);
-  if (r.rr != null) {
-    const barra = el("div", "rr-barra");
-    const relleno = el("i");
-    relleno.style.width = Math.min(100, Math.max(0, r.rr)) + "%";
-    barra.append(relleno);
-    cuerpo.append(barra);
+
+  // Bloques de estadistica: columnas fijas, los numeros protagonistas.
+  const statKda = el("div", "stat");
+  if (r.kda) {
+    const valor = r.kda.kda;
+    const b = el("b", valor >= 1.3 ? "bien" : valor <= 0.8 ? "mal" : "", valor.toFixed(2));
+    statKda.append(b, el("small", null, "KDA"));
+    const hs = r.kda.hsRate != null ? Math.round(r.kda.hsRate * 100) : null;
+    statKda.append(el("span", "sub" + (hs != null && hs >= 30 ? " alto" : ""), hs != null ? `HS ${hs}%` : `${r.kda.games} partidas`));
+    statKda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas`;
+  } else {
+    statKda.append(el("b", "vacio", "—"), el("small", null, "KDA"));
   }
+
   li.append(espina);
   // El hueco del retrato se conserva donde hay picks (Valorant/LoL) para
   // alinear filas; en Dota no hay heroes en el lobby y el espacio sobra.
   if (juego !== "dota" || retrato.childNodes.length) li.append(retrato);
-  li.append(insignia); // siempre: alinea insignias/medallas
-  li.append(cuerpo);
+  li.append(insignia, cuerpo, statKda);
+
+  if (r.rr != null) {
+    const statRr = el("div", "stat stat-rr");
+    statRr.append(el("b", null, String(r.rr)), el("small", null, rotuloRr));
+    li.append(statRr);
+    const barra = el("div", "rr-barra");
+    const relleno = el("i");
+    relleno.style.width = Math.min(100, Math.max(0, r.rr)) + "%";
+    barra.append(relleno);
+    li.append(barra); // absoluta al pie de la carta: nunca altera la altura
+  }
   return li;
 }
 
