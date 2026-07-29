@@ -25,6 +25,9 @@ function colorRango(tier) {
   return "#7a8894";
 }
 
+// Color distintivo por party: lo lleva la espina izquierda y el chip Pn.
+const COLORES_PARTY = ["#ffd166", "#06d6a0", "#118ab2", "#ef476f", "#9b5de5"];
+
 const $ = (id) => document.getElementById(id);
 
 function el(tag, className, text) {
@@ -69,6 +72,7 @@ function filaJugador(r) {
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
   if (r.party) {
+    li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
     const chip = el("span", `party party-c${((r.party - 1) % 5) + 1}`, "P" + r.party);
     chip.title = `Party de ${r.partySize} jugadores`;
     linea1.append(chip);

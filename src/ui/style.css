@@ -156,8 +156,8 @@ body {
 .equipo ul { list-style: none; display: grid; gap: 0.5rem; }
 
 /* ---- Fila de jugador ----
-   La espina izquierda y la barra de RR llevan el color del rango:
-   es el dato que se lee desde lejos. */
+   La espina izquierda marca la PARTY (mismo color = van juntos); neutra si
+   va solo. El color del rango vive en el nombre del rango y la barra de RR. */
 .jugador {
   --rango: var(--apagado);
   display: flex;
@@ -167,7 +167,7 @@ body {
 
 .jugador .espina {
   flex: 0 0 6px;
-  background: var(--rango);
+  background: var(--party, var(--linea));
 }
 
 /* Retrato del agente: la identidad de la fila, pegado a la espina */
