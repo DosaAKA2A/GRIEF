@@ -2,7 +2,13 @@
 // Todo el DOM se construye con createElement: los nombres vienen de Riot
 // y no deben interpretarse nunca como HTML.
 
-const FASES = { pregame: "Seleccion de agentes", core: "En partida" };
+const FASES = {
+  pregame: "Seleccion de agentes",
+  core: "En partida",
+  "lol-champselect": "Seleccion de campeones",
+  "lol-game": "En partida",
+  "dota-lobby": "Lobby",
+};
 
 // Color por indice de tier (0-27). El color es el dato: se lee desde lejos.
 const COLORES_RANGO = [
@@ -47,7 +53,8 @@ function iconoRango(tier, clase) {
   return img;
 }
 
-function filaJugador(r) {
+function filaJugador(r, juego) {
+  const rotuloRr = juego === "lol" ? "LP" : "RR";
   const li = el("li", "jugador");
   li.style.setProperty("--rango", colorRango(r.tier));
 
@@ -67,7 +74,9 @@ function filaJugador(r) {
 
   const linea1 = el("div", "linea1");
   const sinPick = !r.agent || r.agent === "-";
-  linea1.append(el("span", "agente" + (sinPick ? " sin-pick" : ""), sinPick ? "sin pick" : r.agent));
+  if (!(sinPick && juego === "dota")) {
+    linea1.append(el("span", "agente" + (sinPick ? " sin-pick" : ""), sinPick ? "sin pick" : r.agent));
+  }
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
@@ -82,13 +91,16 @@ function filaJugador(r) {
     chip.title = a.detalle;
     linea1.append(chip);
   }
-  const rr = el("span", "rr");
-  rr.append(el("b", null, String(r.rr)));
-  rr.append(el("small", null, "RR"));
-  linea1.append(rr);
+  if (r.rr != null) {
+    const rr = el("span", "rr");
+    rr.append(el("b", null, String(r.rr)));
+    rr.append(el("small", null, rotuloRr));
+    linea1.append(rr);
+  }
 
   const linea2 = el("div", "linea2");
-  linea2.append(el("span", "rango-nombre", r.tierLabel));
+  if (r.tierLabel) linea2.append(el("span", "rango-nombre", r.tierLabel));
+  if (r.linea2extra) linea2.append(el("span", "kda", r.linea2extra));
   if (r.kda) {
     const kda = el("span", "kda", "KDA " + r.kda.kda.toFixed(2));
     const hs = r.kda.hsRate != null ? ` · HS ${Math.round(r.kda.hsRate * 100)}%` : "";
@@ -104,18 +116,27 @@ function filaJugador(r) {
     linea2.append(peak);
   }
 
-  const barra = el("div", "rr-barra");
-  const relleno = el("i");
-  relleno.style.width = Math.min(100, Math.max(0, r.rr)) + "%";
-  barra.append(relleno);
-
-  cuerpo.append(linea1, linea2, barra);
-  li.append(espina, retrato, insignia, cuerpo);
+  cuerpo.append(linea1, linea2);
+  if (r.rr != null) {
+    const barra = el("div", "rr-barra");
+    const relleno = el("i");
+    relleno.style.width = Math.min(100, Math.max(0, r.rr)) + "%";
+    barra.append(relleno);
+    cuerpo.append(barra);
+  }
+  li.append(espina);
+  // En Valorant los huecos se conservan para alinear filas; en LoL/Dota
+  // no hay retratos ni insignias y el espacio sobra.
+  const esValorant = juego == null || juego === "valorant";
+  if (esValorant || retrato.childNodes.length) li.append(retrato);
+  if (esValorant || insignia.childNodes.length) li.append(insignia);
+  li.append(cuerpo);
   return li;
 }
 
 function pintar(estado) {
   $("estado").textContent = estado.status ?? "";
+  $("juego").textContent = estado.gameLabel ?? "Valorant · LoL · Dota 2";
 
   const hayPartida = estado.rows && estado.rows.length > 0;
   $("vacio").hidden = hayPartida;
@@ -132,16 +153,20 @@ function pintar(estado) {
 
   $("fase-texto").textContent = FASES[estado.phase] ?? estado.label ?? "";
 
-  // Tu equipo: el que contiene tu fila; si no hay (espectador), Blue.
+  // Tu equipo: el que contiene tu fila; sin ella, el equipo de la primera.
   const miFila = estado.rows.find((r) => r.me);
-  const miEquipo = miFila ? miFila.team : "Blue";
-  const aliados = estado.rows.filter((r) => r.team === miEquipo);
-  const rivales = estado.rows.filter((r) => r.team !== miEquipo);
+  const miEquipo = miFila ? miFila.team : estado.rows[0].team;
+  let aliados = estado.rows.filter((r) => r.team === miEquipo);
+  let rivales = estado.rows.filter((r) => r.team !== miEquipo);
+  // Sin equipos distinguibles (lobby de Dota): una sola lista.
+  if (!aliados.length || miEquipo === "-") {
+    aliados = estado.rows;
+    rivales = [];
+  }
+  $("titulo-aliado").textContent = estado.game === "dota" ? "Jugadores del lobby" : "Tu equipo";
 
-  const listaAliado = $("lista-aliado");
-  const listaRival = $("lista-rival");
-  listaAliado.replaceChildren(...aliados.map(filaJugador));
-  listaRival.replaceChildren(...rivales.map(filaJugador));
+  $("lista-aliado").replaceChildren(...aliados.map((r) => filaJugador(r, estado.game)));
+  $("lista-rival").replaceChildren(...rivales.map((r) => filaJugador(r, estado.game)));
 
   $("panel-rival").hidden = rivales.length === 0;
   $("equipos").classList.toggle("solo-aliado", rivales.length === 0);

@@ -1,10 +1,16 @@
 # GRIEF
 
-Tracker ligero de Valorant: stats de los jugadores de tu partida antes de empezar, leyendo la API local del cliente de Riot. Sin overlay in-game, sin tocar el proceso del juego, sin Overwolf.
+Tracker ligero multi-juego: stats de los jugadores de tu partida antes de empezar. Sin overlay in-game, sin tocar el proceso del juego, sin Overwolf.
+
+- **Valorant** (completo): API local del cliente de Riot — rangos, RR, KDA, HS%, nivel, parties y senales de cheater/smurf/booster.
+- **League of Legends**: LCU + Live Client Data — seleccion de campeones (tu equipo con rango/LP) y en partida los 10 con campeon, KDA en vivo y rango best-effort.
+- **Dota 2** (parcial): requiere `-console -condebug` en las opciones de lanzamiento de Steam; GRIEF parsea el console.log para sacar los SteamID del lobby y consulta OpenDota (medalla, winrate, KDA). Los perfiles privados salen sin datos.
+
+La app detecta sola que juego esta vivo y muestra ese.
 
 ## Estado
 
-Fase 3: app de escritorio (Electron) + consola + UI en navegador, con websocket local, cache y senales de cheater/smurf/booster.
+Fase 4: multi-juego (Valorant / LoL / Dota 2) en app de escritorio (Electron), consola y UI en navegador.
 
 ## Uso
 

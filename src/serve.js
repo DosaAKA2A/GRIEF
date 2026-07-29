@@ -1,11 +1,11 @@
 // Nucleo del servidor de la UI: sirve src/ui en 127.0.0.1 y transmite el
-// estado del Tracker por SSE. Lo consumen server.js (CLI) y la app de
-// escritorio (electron/main.js).
+// estado combinado (Valorant + LoL + Dota 2) por SSE. Lo consumen server.js
+// (CLI) y la app de escritorio (electron/main.js).
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Tracker } from "./tracker.js";
+import { MultiTracker } from "./games.js";
 
 const UI_DIR = join(dirname(fileURLToPath(import.meta.url)), "ui");
 
@@ -18,7 +18,10 @@ const MIME = {
 };
 
 export function startServer({ port = 4327 } = {}) {
-  const state = { status: "Arrancando...", phase: null, label: null, rows: [], updatedAt: null };
+  let state = {
+    game: null, gameLabel: null,
+    status: "Arrancando...", phase: null, label: null, rows: [], updatedAt: null,
+  };
   const clients = new Set();
 
   function broadcast() {
@@ -26,23 +29,9 @@ export function startServer({ port = 4327 } = {}) {
     for (const res of clients) res.write(data);
   }
 
-  const tracker = new Tracker({ watch: true });
-  tracker.on("status", (s) => {
-    state.status = s;
-    broadcast();
-  });
-  tracker.on("match", (m) => {
-    state.phase = m.phase;
-    state.label = m.label;
-    state.rows = m.rows;
-    state.updatedAt = Date.now();
-    broadcast();
-  });
-  tracker.on("no-match", () => {
-    state.phase = null;
-    state.label = null;
-    state.rows = [];
-    state.updatedAt = Date.now();
+  const tracker = new MultiTracker();
+  tracker.on("update", (s) => {
+    state = s;
     broadcast();
   });
 
@@ -76,9 +65,7 @@ export function startServer({ port = 4327 } = {}) {
     for (const res of clients) res.write(": ping\n\n");
   }, 25000).unref();
 
-  tracker.start().catch((err) => {
-    console.error("Error del tracker:", err.message);
-  });
+  tracker.start(); // los errores por juego los maneja cada tracker hijo
 
   return new Promise((resolve, reject) => {
     server.on("error", reject);
