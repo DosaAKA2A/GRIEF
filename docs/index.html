@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GRIEF — lee la partida antes de jugarla</title>
+  <meta name="description" content="Tracker de escritorio para Valorant, League of Legends y Dota 2: rangos, KDA, parties y señales de smurfs antes de que empiece la partida. Sin overlay, sin Overwolf.">
+  <style>
+    @font-face { font-family: "Clash Display"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/clash-display-500.woff2") format("woff2"); }
+    @font-face { font-family: "Clash Display"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/clash-display-600.woff2") format("woff2"); }
+    @font-face { font-family: "Clash Display"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/clash-display-700.woff2") format("woff2"); }
+    @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/geist-mono-400.woff2") format("woff2"); }
+    @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/geist-mono-500.woff2") format("woff2"); }
+    @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/geist-mono-600.woff2") format("woff2"); }
+    @font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/inter-400.woff2") format("woff2"); }
+    @font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("fonts/inter-500.woff2") format("woff2"); }
+    @font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/inter-600.woff2") format("woff2"); }
+
+    :root {
+      --fondo: #0f1923;
+      --panel: #16222e;
+      --panel-2: #131d28;
+      --linea: #263440;
+      --hueso: #ece8e1;
+      --apagado: #7a8894;
+      --tenue: #4d5a66;
+      --rojo: #ff4655;
+      --teal: #35c9ac;
+      --display: "Clash Display", "Segoe UI", sans-serif;
+      --mono: "Geist Mono", Consolas, monospace;
+      --sans: "Inter", "Segoe UI", system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(720px 480px at 85% -10%, rgba(255, 70, 85, 0.08), transparent 60%),
+        radial-gradient(800px 560px at -10% 40%, rgba(53, 201, 172, 0.05), transparent 60%),
+        var(--fondo);
+      color: var(--hueso);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(236, 232, 225, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(236, 232, 225, 0.015) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .contenedor { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; position: relative; }
+
+    /* Header */
+    header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.1rem 0;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--rojo) 0, var(--linea) 160px, var(--linea) 70%, transparent);
+    }
+    .marca { font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: 0.22em; color: var(--rojo); }
+    .marca-sub { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--apagado); }
+    nav { margin-left: auto; display: flex; gap: 1.5rem; }
+    nav a {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--apagado); text-decoration: none; transition: color 0.15s;
+    }
+    nav a:hover { color: var(--hueso); }
+
+    /* Hero */
+    .hero { padding: 4.5rem 0 3rem; text-align: center; }
+    .hero .eyebrow {
+      font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--teal); margin-bottom: 1.2rem;
+    }
+    h1 {
+      font-family: var(--display); font-weight: 600; font-size: clamp(2rem, 5vw, 3.2rem);
+      letter-spacing: 0.02em; line-height: 1.15; max-width: 21ch; margin: 0 auto;
+    }
+    h1 em { font-style: normal; color: var(--rojo); }
+    .hero p.sub {
+      max-width: 56ch; margin: 1.3rem auto 0; color: var(--apagado); font-size: 1rem;
+    }
+    .botones { display: flex; gap: 0.9rem; justify-content: center; margin-top: 2.2rem; flex-wrap: wrap; }
+    .btn {
+      font-family: var(--mono); font-weight: 600; font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 0.85rem 1.6rem; text-decoration: none;
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+      transition: filter 0.15s, background 0.15s;
+    }
+    .btn-rojo { background: var(--rojo); color: var(--fondo); }
+    .btn-rojo:hover { filter: brightness(1.12); }
+    .btn-borde { border: 1px solid var(--linea); color: var(--hueso); clip-path: none; }
+    .btn-borde:hover { background: var(--panel); }
+    .hero .nota { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em; color: var(--tenue); margin-top: 0.9rem; }
+
+    .captura {
+      margin: 3rem auto 0; max-width: 1080px;
+      border: 1px solid var(--linea);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    }
+    .captura img { display: block; width: 100%; height: auto; }
+    .pie-captura { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tenue); text-align: center; margin-top: 0.8rem; }
+
+    /* Secciones */
+    section { padding: 4.5rem 0 0; }
+    .eyebrow-seccion {
+      font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--rojo); margin-bottom: 0.8rem;
+    }
+    h2 { font-family: var(--display); font-weight: 600; font-size: 1.7rem; letter-spacing: 0.02em; line-height: 1.2; }
+
+    /* Juegos */
+    .juegos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2rem; }
+    .juego {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--linea);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+      padding: 1.4rem 1.5rem 1.6rem;
+    }
+    .juego .titulo { font-family: var(--display); font-weight: 600; font-size: 1.05rem; letter-spacing: 0.06em; }
+    .juego .estado-j { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 0.14rem 0.45rem; border: 1px solid; margin-left: 0.6rem; vertical-align: 0.15em; }
+    .estado-j.completo { color: var(--teal); border-color: var(--teal); }
+    .estado-j.parcial { color: #e8a33c; border-color: #e8a33c; }
+    .juego p { color: var(--apagado); font-size: 0.86rem; margin-top: 0.7rem; }
+
+    /* Rasgos */
+    .rasgos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2rem; }
+    .rasgo { border-top: 2px solid var(--linea); padding-top: 1rem; }
+    .rasgo:nth-child(3n+1) { border-color: var(--rojo); }
+    .rasgo:nth-child(3n+2) { border-color: var(--teal); }
+    .rasgo:nth-child(3n) { border-color: var(--apagado); }
+    .rasgo h3 { font-family: var(--mono); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; }
+    .rasgo p { color: var(--apagado); font-size: 0.85rem; margin-top: 0.45rem; }
+
+    /* Descarga final */
+    .final { text-align: center; padding-bottom: 1rem; }
+    .final h2 { max-width: 24ch; margin: 0 auto; }
+
+    footer {
+      margin-top: 4.5rem; padding: 1.6rem 0 2.2rem;
+      border-top: 1px solid var(--linea);
+      display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+      font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tenue);
+    }
+    footer a { color: var(--apagado); text-decoration: none; }
+    footer a:hover { color: var(--hueso); }
+    footer .der { margin-left: auto; }
+
+    @media (max-width: 760px) {
+      .juegos, .rasgos { grid-template-columns: 1fr; }
+      nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="contenedor">
+    <header>
+      <span class="marca">GRIEF</span>
+      <span class="marca-sub">Match tracker</span>
+      <nav>
+        <a href="#juegos">Juegos</a>
+        <a href="#rasgos">Que hace</a>
+        <a href="#descargar">Descargar</a>
+        <a href="https://github.com/DosaAKA2A/GRIEF">GitHub</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Valorant · League of Legends · Dota 2</p>
+      <h1>Lee la partida <em>antes</em> de jugarla.</h1>
+      <p class="sub">GRIEF vive en tu segunda pantalla y te muestra quien es cada uno en tu lobby: rango real, KDA reciente, parties y señales de smurfs o cuentas boosteadas. Sin overlay, sin tocar el juego, sin Overwolf.</p>
+      <div class="botones" id="descargar">
+        <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF.Setup.0.1.0.exe">Descargar para Windows</a>
+        <a class="btn btn-borde" href="https://github.com/DosaAKA2A/GRIEF/releases/latest">Version portable</a>
+      </div>
+      <p class="nota">Gratis · Windows 10/11 · codigo abierto</p>
+      <figure class="captura"><img src="img/captura-valorant.png" alt="GRIEF mostrando una partida de Valorant con rangos, KDA y señales por jugador" width="2800" height="1520"></figure>
+      <p class="pie-captura">Partida de Valorant: los 10 con rango, RR, KDA y señales</p>
+    </section>
+
+    <section id="juegos">
+      <p class="eyebrow-seccion">Tres juegos, una app</p>
+      <h2>Detecta solo el juego que este vivo.</h2>
+      <div class="juegos">
+        <div class="juego">
+          <span class="titulo">VALORANT</span><span class="estado-j completo">Completo</span>
+          <p>Desde la seleccion de agentes: rango e insignia, RR, peak, KDA y HS% de las ultimas competitivas, nivel de cuenta, parties marcadas por color y señales de posible cheater, smurf o booster.</p>
+        </div>
+        <div class="juego">
+          <span class="titulo">LEAGUE OF LEGENDS</span><span class="estado-j completo">Activo</span>
+          <p>En seleccion de campeones ves a tu equipo con rango, LP y emblema; en partida, los 10 con su campeon y KDA en vivo de la propia API del juego.</p>
+        </div>
+        <div class="juego">
+          <span class="titulo">DOTA 2</span><span class="estado-j parcial">Parcial</span>
+          <p>Con la opcion -condebug de Steam, GRIEF lee el lobby y trae medalla, winrate y KDA de cada jugador via OpenDota. Los perfiles privados se marcan como tales.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="rasgos">
+      <p class="eyebrow-seccion">Que hace distinto</p>
+      <h2>Informacion honesta, al instante.</h2>
+      <div class="rasgos">
+        <div class="rasgo">
+          <h3>Señales, no acusaciones</h3>
+          <p>Posible Cheater, Posible Smurf y Posible Booster salen de un puntaje con varias evidencias (HS%, RR por victoria, edad de cuenta, rachas). El motivo exacto siempre esta en el tooltip.</p>
+        </div>
+        <div class="rasgo">
+          <h3>Parties a la vista</h3>
+          <p>Mismo color en la espina de la fila: van juntos. Funciona incluso con jugadores en modo incognito y con el equipo rival.</p>
+        </div>
+        <div class="rasgo">
+          <h3>Deteccion al instante</h3>
+          <p>Un websocket local avisa en cuanto arranca la seleccion de agentes. Nada de refrescar ni esperar sondeos.</p>
+        </div>
+        <div class="rasgo">
+          <h3>Sin overlay ni inyecciones</h3>
+          <p>GRIEF nunca toca el proceso del juego ni su memoria. Lee las API oficiales del cliente, como hacen las webs de stats, pero en tu maquina.</p>
+        </div>
+        <div class="rasgo">
+          <h3>Ligero de verdad</h3>
+          <p>El tracker corre sin dependencias sobre Node y la app pesa lo que pesa su ventana. Pensado para la segunda pantalla.</p>
+        </div>
+        <div class="rasgo">
+          <h3>Tus datos, en tu PC</h3>
+          <p>No hay cuenta, no hay servidor nuestro, no hay telemetria. Todo se consulta desde tu equipo directo a las API de cada juego.</p>
+        </div>
+      </div>
+      <figure class="captura" style="margin-top:3rem"><img src="img/captura-dota.png" alt="GRIEF mostrando un lobby de Dota 2 con medallas y winrate por jugador" width="2800" height="1520" loading="lazy"></figure>
+      <p class="pie-captura">Lobby de Dota 2: medallas, winrate y KDA via OpenDota</p>
+    </section>
+
+    <section class="final">
+      <p class="eyebrow-seccion">Listo en un minuto</p>
+      <h2>Instala, juega, y GRIEF hace el resto.</h2>
+      <div class="botones">
+        <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF.Setup.0.1.0.exe">Descargar para Windows</a>
+        <a class="btn btn-borde" href="https://github.com/DosaAKA2A/GRIEF/releases/latest">Todas las versiones</a>
+      </div>
+    </section>
+
+    <footer>
+      <span>GRIEF — Estudio de Iris</span>
+      <a href="https://github.com/DosaAKA2A/GRIEF">GitHub</a>
+      <a href="mailto:studio.iris2026@gmail.com">Contacto</a>
+      <span class="der">No afiliado a Riot Games ni a Valve</span>
+    </footer>
+  </div>
+</body>
+</html>
