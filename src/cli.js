@@ -69,19 +69,60 @@ async function printMatch(api, match) {
   console.log();
 }
 
-async function main() {
-  const api = await connect();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// En watch: espera a que el cliente de Riot este vivo (lockfile valido y puerto
+// respondiendo) en vez de morir. Cubre lockfile ausente y lockfile huerfano.
+async function connectWhenReady() {
+  let waiting = false;
   for (;;) {
-    const match = await fetchMatch(api);
+    try {
+      return await connect();
+    } catch (err) {
+      const recoverable =
+        err.code === "ECONNREFUSED" ||
+        err.code === "ENOENT" ||
+        err.message.includes("lockfile") ||
+        err.status === 400; // cliente vivo pero sin sesion iniciada ("token is not ready yet")
+      if (!WATCH || !recoverable) throw err;
+      if (!waiting) {
+        waiting = true;
+        console.log("Esperando al cliente de Riot... (abre Riot Client / VALORANT)");
+      }
+      await sleep(5000);
+    }
+  }
+}
+
+async function main() {
+  let api = await connectWhenReady();
+  let lastPhase; // undefined = arranque; null = fuera de partida
+  for (;;) {
+    let match;
+    try {
+      match = await fetchMatch(api);
+    } catch (err) {
+      // 401/403: tokens caducados o cambio de cuenta -> re-auth completo
+      if (WATCH && (err.status === 401 || err.status === 403 || err.code === "ECONNREFUSED")) {
+        console.log("Sesion invalidada (tokens caducados o cambio de cuenta). Reconectando...");
+        api = await connectWhenReady();
+        continue;
+      }
+      throw err;
+    }
     if (match) {
-      await printMatch(api, match);
+      // Solo repintamos cuando cambia la fase para no inundar la consola
+      if (match.phase !== lastPhase) {
+        await printMatch(api, match);
+        lastPhase = match.phase;
+      }
       if (!WATCH) return;
-      // En watch seguimos: si estabamos en pregame, al pasar a partida salen los 10
     } else {
-      console.log("No estas en ninguna partida ahora mismo.");
+      if (lastPhase !== null || !WATCH) console.log("No estas en ninguna partida ahora mismo.");
+      lastPhase = null;
       if (!WATCH) return;
     }
-    await new Promise((r) => setTimeout(r, POLL_MS));
+    await sleep(POLL_MS);
   }
 }
 
