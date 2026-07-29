@@ -17,6 +17,43 @@ const PHASE_LABELS = {
   pregame: "SELECCION DE AGENTES (solo tu equipo)",
 };
 
+// Senales de cheater/booster. Son heuristicas con falsos positivos (rachas,
+// ex-altos volviendo de pausa): se presentan como "posible", nunca como
+// veredicto. Requieren minimo 5 partidas para no disparar con ruido.
+function alertas(r) {
+  if (!r.kda || r.kda.games < 5) return [];
+  const out = [];
+  const { kda, hsRate, games } = r.kda;
+  const hs = hsRate != null ? Math.round(hsRate * 100) : null;
+  if (hs != null && (hs >= 40 || (hs >= 35 && kda >= 1.3))) {
+    out.push({
+      tipo: "cheater",
+      texto: "Posible Cheater",
+      detalle: `${hs}% de headshots con KDA ${kda.toFixed(2)} en sus ultimas ${games} competitivas`,
+    });
+  }
+  if (r.level != null && r.level > 0 && r.level < 50 && kda >= 1.5) {
+    out.push({
+      tipo: "booster",
+      texto: "Posible Booster",
+      detalle: `cuenta nivel ${r.level} con KDA ${kda.toFixed(2)}: huele a smurf o cuenta de boosteo`,
+    });
+  } else if (kda >= 2 && r.tier >= 3 && r.tier <= 14) {
+    out.push({
+      tipo: "booster",
+      texto: "Posible Booster",
+      detalle: `KDA ${kda.toFixed(2)} demasiado alto para su rango (${r.tierLabel})`,
+    });
+  } else if (r.tier >= 18 && kda <= 0.7) {
+    out.push({
+      tipo: "booster",
+      texto: "Posible Booster",
+      detalle: `KDA ${kda.toFixed(2)} en ${r.tierLabel}: rinde muy por debajo de su rango (cuenta boosteada)`,
+    });
+  }
+  return out;
+}
+
 const POLL_MS = 10000; // sin websocket
 const POLL_BACKUP_MS = 45000; // con websocket (solo red de seguridad)
 const KICK_DEBOUNCE_MS = 400; // deja que el servidor asiente antes de leer
@@ -142,7 +179,10 @@ export class Tracker extends EventEmitter {
     const api = this.api;
     const kdas = await Promise.all(rows.map((r) => api.getKda(r.puuid).catch(() => null)));
     if (this.#sig !== sig) return; // la partida ya cambio, no pisamos nada
-    rows.forEach((r, i) => (r.kda = kdas[i]));
+    rows.forEach((r, i) => {
+      r.kda = kdas[i];
+      r.alertas = alertas(r);
+    });
     this.emit("match", { phase, label: PHASE_LABELS[phase], rows });
   }
 
@@ -170,7 +210,8 @@ export class Tracker extends EventEmitter {
     return players.map((p, i) => {
       const mmr = mmrs[i];
       const incognito = !!p.PlayerIdentity?.Incognito;
-      return {
+      const hideLevel = !!p.PlayerIdentity?.HideAccountLevel;
+      const row = {
         puuid: p.Subject,
         team: p.TeamID ?? "-",
         incognito,
@@ -181,9 +222,13 @@ export class Tracker extends EventEmitter {
         rr: mmr.rr,
         peak: mmr.peakTier,
         peakLabel: tierName(mmr.peakTier),
+        level: hideLevel ? null : p.PlayerIdentity?.AccountLevel ?? null,
+        levelHidden: hideLevel,
         kda: this.api.peekKda(p.Subject), // lo cacheado ya; el resto lo trae #fillKda
         me: p.Subject === this.api.puuid,
       };
+      row.alertas = alertas(row);
+      return row;
     });
   }
 

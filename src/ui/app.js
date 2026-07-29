@@ -60,6 +60,11 @@ function filaJugador(r) {
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
+  for (const a of r.alertas ?? []) {
+    const chip = el("span", "alerta " + a.tipo, a.texto);
+    chip.title = a.detalle;
+    linea1.append(chip);
+  }
   const rr = el("span", "rr");
   rr.append(el("b", null, String(r.rr)));
   rr.append(el("small", null, "RR"));
@@ -69,9 +74,11 @@ function filaJugador(r) {
   linea2.append(el("span", "rango-nombre", r.tierLabel));
   if (r.kda) {
     const kda = el("span", "kda", "KDA " + r.kda.kda.toFixed(2));
-    kda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas competitivas`;
+    const hs = r.kda.hsRate != null ? ` · HS ${Math.round(r.kda.hsRate * 100)}%` : "";
+    kda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas competitivas${hs}`;
     linea2.append(kda);
   }
+  if (r.level != null) linea2.append(el("span", "nivel", `Nivel ${r.level}`));
   if (r.peak > r.tier) {
     const peak = el("span", "peak", "Peak ");
     const peakIcono = iconoRango(r.peak, "peak-img");

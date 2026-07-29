@@ -126,15 +126,33 @@ export class RemoteApi {
     return (res?.History ?? []).map((h) => h.MatchID);
   }
 
-  // K/D/A de todos los jugadores de una partida, cacheado por MatchID.
-  // El detalle completo pesa ~1 MB; solo guardamos lo que usamos.
+  // K/D/A e impactos (cabeza/cuerpo/piernas) de todos los jugadores de una
+  // partida, cacheado por MatchID. El detalle pesa ~1 MB; guardamos lo minimo.
   async getMatchStats(matchId) {
     const hit = matchStatsCache.get(matchId);
     if (hit !== undefined) return hit;
     const res = await withDetailsSlot(() => this.#get(`${this.pd}/match-details/v1/matches/${matchId}`));
     const stats = {};
     for (const p of res.players ?? []) {
-      stats[p.subject] = { k: p.stats?.kills ?? 0, d: p.stats?.deaths ?? 0, a: p.stats?.assists ?? 0 };
+      stats[p.subject] = {
+        k: p.stats?.kills ?? 0,
+        d: p.stats?.deaths ?? 0,
+        a: p.stats?.assists ?? 0,
+        head: 0,
+        body: 0,
+        legs: 0,
+      };
+    }
+    for (const round of res.roundResults ?? []) {
+      for (const ps of round.playerStats ?? []) {
+        const s = stats[ps.subject];
+        if (!s) continue;
+        for (const dmg of ps.damage ?? []) {
+          s.head += dmg.headshots ?? 0;
+          s.body += dmg.bodyshots ?? 0;
+          s.legs += dmg.legshots ?? 0;
+        }
+      }
     }
     matchStatsCache.set(matchId, stats);
     return stats;
@@ -153,17 +171,28 @@ export class RemoteApi {
     if (hit !== undefined) return hit;
     const ids = await this.getHistory(puuid, count);
     const perMatch = await Promise.all(ids.map((id) => this.getMatchStats(id).catch(() => null)));
-    let kills = 0, deaths = 0, assists = 0, games = 0;
+    let kills = 0, deaths = 0, assists = 0, games = 0, head = 0, body = 0, legs = 0;
     for (const m of perMatch) {
       const s = m?.[puuid];
       if (!s) continue;
       kills += s.k;
       deaths += s.d;
       assists += s.a;
+      head += s.head ?? 0;
+      body += s.body ?? 0;
+      legs += s.legs ?? 0;
       games++;
     }
+    const shots = head + body + legs;
     const out = games
-      ? { kda: (kills + assists) / Math.max(1, deaths), kills, deaths, assists, games }
+      ? {
+          kda: (kills + assists) / Math.max(1, deaths),
+          kills,
+          deaths,
+          assists,
+          games,
+          hsRate: shots > 0 ? head / shots : null,
+        }
       : null;
     kdaCache.set(puuid, out);
     return out;

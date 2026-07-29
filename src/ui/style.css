@@ -220,6 +220,24 @@ body {
   margin-left: 0.4rem;
 }
 
+/* Badges de senal: informativos, no acusaciones — borde fino, sin relleno */
+.jugador .alerta {
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid;
+  border-radius: 2px;
+  white-space: nowrap;
+  cursor: help;
+}
+.jugador .alerta.cheater { color: var(--rojo); border-color: var(--rojo); }
+.jugador .alerta.booster { color: #e8a33c; border-color: #e8a33c; }
+
+.jugador .nivel { color: var(--apagado); font-size: 0.75rem; }
+
 .jugador .rr { white-space: nowrap; }
 .jugador .rr b {
   font-family: Bahnschrift, Consolas, monospace;
