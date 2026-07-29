@@ -1,0 +1,245 @@
+/* Paleta: mundo Valorant. Fondo azul-carbon del juego, texto hueso,
+   rojo solo para el rival y estados vivos, teal para tu equipo. */
+:root {
+  --fondo: #0f1923;
+  --panel: #16222e;
+  --linea: #263440;
+  --hueso: #ece8e1;
+  --apagado: #7a8894;
+  --rojo: #ff4655;
+  --teal: #35c9ac;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* hidden debe ganar aunque el elemento tenga display propio (grid/flex) */
+[hidden] { display: none !important; }
+
+body {
+  background: var(--fondo);
+  color: var(--hueso);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Barra superior ---- */
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--linea);
+}
+
+.marca {
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.14em;
+}
+.marca span { color: var(--rojo); }
+
+.fase {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fase-punto {
+  width: 8px;
+  height: 8px;
+  background: var(--rojo);
+  border-radius: 50%;
+  animation: latido 1.6s ease-in-out infinite;
+}
+
+@keyframes latido {
+  50% { opacity: 0.35; }
+}
+
+.estado {
+  margin-left: auto;
+  color: var(--apagado);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+/* ---- Contenido ---- */
+.contenido {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* ---- Estado vacio ---- */
+.vacio { text-align: center; color: var(--apagado); }
+
+.vacio-radar {
+  width: 130px;
+  height: 130px;
+  margin-bottom: 1.25rem;
+}
+.vacio-radar circle {
+  fill: none;
+  stroke: var(--linea);
+  stroke-width: 1.5;
+}
+.vacio-radar .aguja {
+  stroke: var(--teal);
+  stroke-width: 1.5;
+  transform-origin: 50% 50%;
+  animation: barrido 4s linear infinite;
+}
+
+@keyframes barrido {
+  to { transform: rotate(360deg); }
+}
+
+.vacio-titulo {
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-weight: 600;
+  font-size: 1.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hueso);
+}
+
+.vacio-detalle { margin-top: 0.5rem; font-size: 0.9rem; }
+
+/* ---- Equipos ---- */
+.equipos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1100px;
+  align-self: start;
+}
+
+.equipos.solo-aliado { grid-template-columns: minmax(0, 560px); justify-content: center; }
+
+.equipo h2 {
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--linea);
+  margin-bottom: 0.75rem;
+}
+.equipo.aliado h2 { border-color: var(--teal); }
+.equipo.rival h2 { border-color: var(--rojo); }
+
+.equipo ul { list-style: none; display: grid; gap: 0.5rem; }
+
+/* ---- Fila de jugador ----
+   La espina izquierda y la barra de RR llevan el color del rango:
+   es el dato que se lee desde lejos. */
+.jugador {
+  --rango: var(--apagado);
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+}
+
+.jugador .espina {
+  flex: 0 0 6px;
+  background: var(--rango);
+}
+
+.jugador .cuerpo {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.9rem 0.6rem;
+}
+
+.jugador .linea1 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.jugador .agente {
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.jugador .agente.sin-pick { color: var(--apagado); font-style: italic; font-size: 0.9rem; }
+
+.jugador .nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: var(--apagado);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jugador .nombre.oculto { font-style: italic; }
+.jugador .yo {
+  color: var(--teal);
+  font-family: Bahnschrift, "Segoe UI", sans-serif;
+  font-stretch: condensed;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  margin-left: 0.4rem;
+}
+
+.jugador .rr { white-space: nowrap; }
+.jugador .rr b {
+  font-family: Bahnschrift, Consolas, monospace;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.jugador .rr small {
+  color: var(--apagado);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-left: 0.25rem;
+}
+
+.jugador .linea2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+.jugador .rango-nombre { color: var(--rango); font-weight: 600; }
+.jugador .peak { color: var(--apagado); font-size: 0.75rem; margin-left: auto; }
+
+.jugador .rr-barra {
+  height: 3px;
+  background: var(--linea);
+  margin-top: 0.45rem;
+}
+.jugador .rr-barra i {
+  display: block;
+  height: 100%;
+  background: var(--rango);
+  transition: width 0.4s ease;
+}
+
+@media (max-width: 760px) {
+  .equipos { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fase-punto, .vacio-radar .aguja { animation: none; }
+}

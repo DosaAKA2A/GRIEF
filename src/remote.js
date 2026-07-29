@@ -1,6 +1,12 @@
 // Endpoints remotos glz (partida en curso / pregame) y pd (nombres, MMR).
 import { requestOk, HttpError } from "./http.js";
 import { CLIENT_PLATFORM } from "./localapi.js";
+import { TtlCache } from "./cache.js";
+
+// A nivel de modulo para que sobrevivan a los re-auth. El MMR caduca pronto
+// (cambia tras cada partida); los nombres casi nunca.
+const nameCache = new TtlCache(6 * 3600e3);
+const mmrCache = new TtlCache(10 * 60e3);
 
 export class RemoteApi {
   constructor({ region, shard, tokens, clientVersion }) {
@@ -42,20 +48,34 @@ export class RemoteApi {
     return this.#get(`${this.glz}/pregame/v1/matches/${p.MatchID}`);
   }
 
-  // Nombres visibles a partir de PUUIDs.
+  // Nombres visibles a partir de PUUIDs. Solo pide a la API los que falten.
   async getNames(puuids) {
-    const res = await requestOk(`${this.pd}/name-service/v2/players`, {
-      method: "PUT",
-      headers: this.headers,
-      body: puuids,
-    });
     const map = new Map();
-    for (const e of res) map.set(e.Subject, `${e.GameName}#${e.TagLine}`);
+    const missing = [];
+    for (const id of puuids) {
+      const hit = nameCache.get(id);
+      if (hit !== undefined) map.set(id, hit);
+      else missing.push(id);
+    }
+    if (missing.length) {
+      const res = await requestOk(`${this.pd}/name-service/v2/players`, {
+        method: "PUT",
+        headers: this.headers,
+        body: missing,
+      });
+      for (const e of res) {
+        const name = `${e.GameName}#${e.TagLine}`;
+        map.set(e.Subject, name);
+        nameCache.set(e.Subject, name);
+      }
+    }
     return map;
   }
 
   // Rango competitivo actual y peak de un jugador.
   async getMmr(puuid) {
+    const hit = mmrCache.get(puuid);
+    if (hit !== undefined) return hit;
     try {
       const res = await requestOk(`${this.pd}/mmr/v1/players/${puuid}`, { headers: this.headers });
       const comp = res?.QueueSkills?.competitive;
@@ -72,7 +92,9 @@ export class RemoteApi {
           if (Number(t) > peakTier) peakTier = Number(t);
         }
       }
-      return { currentTier, rr, peakTier, games: latest ? undefined : 0 };
+      const out = { currentTier, rr, peakTier, games: latest ? undefined : 0 };
+      mmrCache.set(puuid, out); // solo cacheamos respuestas buenas, los errores se reintentan
+      return out;
     } catch (err) {
       if (err instanceof HttpError) return { currentTier: 0, rr: 0, peakTier: 0, error: err.status };
       throw err;
