@@ -263,6 +263,23 @@ body {
 
 .jugador .nivel { color: var(--apagado); font-size: 0.75rem; }
 
+/* Marcador de party: mismo numero y color = van juntos */
+.jugador .party {
+  font-family: Bahnschrift, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 2px;
+  color: var(--fondo);
+  cursor: help;
+}
+.jugador .party-c1 { background: #ffd166; }
+.jugador .party-c2 { background: #06d6a0; }
+.jugador .party-c3 { background: #118ab2; color: var(--hueso); }
+.jugador .party-c4 { background: #ef476f; color: var(--hueso); }
+.jugador .party-c5 { background: #9b5de5; color: var(--hueso); }
+
 .jugador .rr { white-space: nowrap; }
 .jugador .rr b {
   font-family: Bahnschrift, Consolas, monospace;
@@ -279,11 +296,13 @@ body {
 
 .jugador .linea2 {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.6rem;
+  gap: 0.15rem 0.6rem;
   font-size: 0.8rem;
   margin-top: 0.15rem;
 }
+.jugador .linea2 > span { white-space: nowrap; }
 .jugador .rango-nombre { color: var(--rango); font-weight: 600; }
 .jugador .kda { color: var(--hueso); opacity: 0.85; font-size: 0.75rem; }
 .jugador .peak { color: var(--apagado); font-size: 0.75rem; margin-left: auto; }

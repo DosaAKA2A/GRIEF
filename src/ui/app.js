@@ -68,6 +68,11 @@ function filaJugador(r) {
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
+  if (r.party) {
+    const chip = el("span", `party party-c${((r.party - 1) % 5) + 1}`, "P" + r.party);
+    chip.title = `Party de ${r.partySize} jugadores`;
+    linea1.append(chip);
+  }
   for (const a of r.alertas ?? []) {
     const chip = el("span", "alerta " + a.tipo, a.texto);
     chip.title = a.detalle;

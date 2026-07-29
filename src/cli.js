@@ -13,12 +13,13 @@ function pad(s, n) {
 function printMatch({ label, rows }) {
   console.log(`\nFase: ${label} — ${rows.length} jugadores\n`);
   console.log(
-    pad("EQUIPO", 8) + pad("JUGADOR", 26) + pad("AGENTE", 14) + pad("RANGO", 16) + pad("RR", 5) + pad("KDA", 6) + pad("PEAK", 16) + "SENAL"
+    pad("EQUIPO", 8) + pad("PARTY", 7) + pad("JUGADOR", 26) + pad("AGENTE", 14) + pad("RANGO", 16) + pad("RR", 5) + pad("KDA", 6) + pad("PEAK", 16) + "SENAL"
   );
-  console.log("-".repeat(97));
+  console.log("-".repeat(104));
   for (const r of rows) {
     console.log(
       pad(r.team, 8) +
+        pad(r.party ? "P" + r.party : "", 7) +
         pad(r.name + (r.me ? " *" : ""), 26) +
         pad(r.agent, 14) +
         pad(r.tierLabel, 16) +

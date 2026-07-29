@@ -116,8 +116,9 @@ export class Tracker extends EventEmitter {
 
   async start() {
     for (;;) {
-      const { api, lock } = await this.#connectWhenReady();
+      const { api, lock, local } = await this.#connectWhenReady();
       this.api = api;
+      this.local = local;
       const ws = this.watch ? await this.#openWs(lock) : null;
       try {
         await this.#loop(ws);
@@ -143,7 +144,7 @@ export class Tracker extends EventEmitter {
       getRegionShard(),
     ]);
     this.emit("status", `Conectado. Region: ${regionShard.region} / shard: ${regionShard.shard}`);
-    return { api: new RemoteApi({ ...regionShard, tokens, clientVersion }), lock };
+    return { api: new RemoteApi({ ...regionShard, tokens, clientVersion }), lock, local };
   }
 
   // En watch: espera a que el cliente de Riot este vivo (lockfile valido y
@@ -252,12 +253,13 @@ export class Tracker extends EventEmitter {
 
   async #enrich(players) {
     const puuids = players.map((p) => p.Subject);
-    const [names, mmrs, agents] = await Promise.all([
+    const [names, mmrs, agents, presences] = await Promise.all([
       this.api.getNames(puuids).catch(() => new Map()),
       Promise.all(players.map((p) => this.api.getMmr(p.Subject))),
       Promise.all(players.map((p) => agentName(p.CharacterID))),
+      this.local.getPresences().catch(() => new Map()),
     ]);
-    return players.map((p, i) => {
+    const rows = players.map((p, i) => {
       const mmr = mmrs[i];
       const incognito = !!p.PlayerIdentity?.Incognito;
       const hideLevel = !!p.PlayerIdentity?.HideAccountLevel;
@@ -284,6 +286,28 @@ export class Tracker extends EventEmitter {
       row.alertas = alertas(row);
       return row;
     });
+
+    // Parties: agrupa por partyId de las presencias; solo marca las de 2+
+    // miembros dentro de la partida. Numeracion estable ordenando por ID.
+    const porParty = new Map();
+    for (const r of rows) {
+      const pr = presences.get(r.puuid);
+      if (pr?.partyId) {
+        if (!porParty.has(pr.partyId)) porParty.set(pr.partyId, []);
+        porParty.get(pr.partyId).push(r);
+      }
+    }
+    let n = 0;
+    for (const partyId of [...porParty.keys()].sort()) {
+      const members = porParty.get(partyId);
+      if (members.length < 2) continue;
+      n++;
+      for (const r of members) {
+        r.party = n;
+        r.partySize = members.length;
+      }
+    }
+    return rows;
   }
 
   #kick() {

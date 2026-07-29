@@ -23,6 +23,26 @@ export class LocalApi {
     return { accessToken: e.accessToken, entitlementsToken: e.token, puuid: e.subject };
   }
 
+  // Presencias del chat local: en seleccion de agentes y en partida incluyen
+  // a los jugadores de tu partida; su blob private (base64) trae el partyId.
+  // Funciona incluso con jugadores en incognito.
+  async getPresences() {
+    const res = await this.get("/chat/v4/presences");
+    const map = new Map();
+    for (const p of res?.presences ?? []) {
+      if (p.product !== "valorant" || !p.private) continue;
+      try {
+        const priv = JSON.parse(Buffer.from(p.private, "base64").toString("utf8"));
+        if (priv?.partyId) {
+          map.set(p.puuid, { partyId: priv.partyId, partySize: priv.partySize ?? null });
+        }
+      } catch {
+        // blob raro o de otro producto: ignorar
+      }
+    }
+    return map;
+  }
+
   // Version del cliente (necesaria como header en varios endpoints pd/glz).
   // Se intenta local primero; fallback a valorant-api.com.
   async getClientVersion() {
