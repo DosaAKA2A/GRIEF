@@ -1,13 +1,19 @@
-/* Paleta: mundo Valorant. Fondo azul-carbon del juego, texto hueso,
-   rojo solo para el rival y estados vivos, teal para tu equipo. */
+/* GRIEF — identidad tipografica de Iris sobre el mundo Valorant.
+   Clash Display: marca y numeros grandes. Geist Mono: microcopy tecnico en
+   mayusculas con tracking. Inter: nombres y texto. */
 :root {
   --fondo: #0f1923;
   --panel: #16222e;
+  --panel-2: #131d28;
   --linea: #263440;
   --hueso: #ece8e1;
   --apagado: #7a8894;
+  --tenue: #4d5a66;
   --rojo: #ff4655;
   --teal: #35c9ac;
+  --display: "Clash Display", "Segoe UI", sans-serif;
+  --mono: "Geist Mono", Consolas, monospace;
+  --sans: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,71 +21,100 @@
 /* hidden debe ganar aunque el elemento tenga display propio (grid/flex) */
 [hidden] { display: none !important; }
 
+::selection { background: var(--rojo); color: var(--fondo); }
+
 body {
-  background: var(--fondo);
+  background:
+    radial-gradient(640px 420px at 88% -12%, rgba(255, 70, 85, 0.07), transparent 60%),
+    radial-gradient(720px 520px at -12% 112%, rgba(53, 201, 172, 0.05), transparent 60%),
+    var(--fondo);
   color: var(--hueso);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: var(--sans);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Rejilla tecnica sutil sobre todo el fondo */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(236, 232, 225, 0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(236, 232, 225, 0.016) 1px, transparent 1px);
+  background-size: 44px 44px;
 }
 
 /* ---- Barra superior ---- */
 .barra {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  padding: 0.7rem 1.25rem;
-  border-bottom: 1px solid var(--linea);
+  gap: 1.5rem;
+  padding: 0.85rem 1.5rem;
+}
+.barra::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--rojo) 0, var(--linea) 180px, var(--linea) 70%, transparent);
 }
 
 .marca {
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
+  font-family: var(--display);
   font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: 0.2em;
+  font-size: 1.15rem;
+  letter-spacing: 0.22em;
   color: var(--rojo);
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
+  gap: 0.75rem;
 }
 .marca .marca-sub {
-  color: var(--apagado);
-  font-weight: 400;
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: var(--apagado);
 }
 
 .fase {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
-
 .fase-punto {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background: var(--rojo);
   border-radius: 50%;
+  box-shadow: 0 0 8px var(--rojo);
   animation: latido 1.6s ease-in-out infinite;
 }
-
 @keyframes latido {
-  50% { opacity: 0.35; }
+  50% { opacity: 0.3; }
 }
 
 .estado {
   margin-left: auto;
-  color: var(--apagado);
-  font-size: 0.8rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  color: var(--tenue);
   text-align: right;
+  max-width: 46ch;
 }
 
 /* ---- Contenido ---- */
@@ -88,113 +123,137 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.75rem;
 }
 
 /* ---- Estado vacio ---- */
 .vacio { text-align: center; color: var(--apagado); }
 
-.vacio-radar {
-  width: 130px;
-  height: 130px;
-  margin-bottom: 1.25rem;
-}
-.vacio-radar circle {
-  fill: none;
-  stroke: var(--linea);
-  stroke-width: 1.5;
-}
+.vacio-radar { width: 130px; height: 130px; margin-bottom: 1.5rem; opacity: 0.9; }
+.vacio-radar circle { fill: none; stroke: var(--linea); stroke-width: 1.5; }
 .vacio-radar .aguja {
   stroke: var(--teal);
   stroke-width: 1.5;
   transform-origin: 50% 50%;
   animation: barrido 4s linear infinite;
 }
-
-@keyframes barrido {
-  to { transform: rotate(360deg); }
-}
+@keyframes barrido { to { transform: rotate(360deg); } }
 
 .vacio-titulo {
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
+  font-family: var(--display);
   font-weight: 600;
-  font-size: 1.6rem;
-  letter-spacing: 0.1em;
+  font-size: 1.5rem;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--hueso);
 }
-
-.vacio-detalle { margin-top: 0.5rem; font-size: 0.9rem; }
+.vacio-detalle {
+  margin-top: 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  line-height: 2.1;
+  max-width: 76ch;
+  white-space: pre-line;
+}
 
 /* ---- Equipos ---- */
 .equipos {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 1.75rem;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1160px;
   align-self: start;
 }
-
-.equipos.solo-aliado { grid-template-columns: minmax(0, 560px); justify-content: center; }
+.equipos.solo-aliado { grid-template-columns: minmax(0, 600px); justify-content: center; }
 
 .equipo h2 {
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--mono);
   font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.16em;
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--linea);
-  margin-bottom: 0.75rem;
+  color: var(--hueso);
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--linea);
+  margin-bottom: 0.9rem;
+  position: relative;
 }
-.equipo.aliado h2 { border-color: var(--teal); }
-.equipo.rival h2 { border-color: var(--rojo); }
+.equipo h2::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  align-self: center;
+}
+.equipo.aliado h2::before { background: var(--teal); }
+.equipo.rival h2::before { background: var(--rojo); }
+.equipo h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 64px;
+  height: 2px;
+}
+.equipo.aliado h2::after { background: var(--teal); }
+.equipo.rival h2::after { background: var(--rojo); }
 
-.equipo ul { list-style: none; display: grid; gap: 0.5rem; }
+.equipo ul { list-style: none; display: grid; gap: 0.6rem; }
 
 /* ---- Fila de jugador ----
-   La espina izquierda marca la PARTY (mismo color = van juntos); neutra si
-   va solo. El color del rango vive en el nombre del rango y la barra de RR. */
+   Esquina cortada estilo Valorant; la espina marca la PARTY (mismo color =
+   van juntos, neutra si va solo). El color de rango vive en el texto del
+   rango y en la barra de RR. */
 .jugador {
   --rango: var(--apagado);
   display: flex;
   align-items: stretch;
-  background: var(--panel);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid rgba(38, 52, 64, 0.9);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  transition: border-color 0.18s ease;
+  animation: aparecer 0.3s ease backwards;
+}
+.jugador:hover { border-color: rgba(122, 136, 148, 0.55); }
+.jugador:nth-child(1) { animation-delay: 0.02s; }
+.jugador:nth-child(2) { animation-delay: 0.06s; }
+.jugador:nth-child(3) { animation-delay: 0.1s; }
+.jugador:nth-child(4) { animation-delay: 0.14s; }
+.jugador:nth-child(5) { animation-delay: 0.18s; }
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(5px); }
 }
 
 .jugador .espina {
-  flex: 0 0 6px;
+  flex: 0 0 5px;
   background: var(--party, var(--linea));
 }
 
-/* Retrato del agente: la identidad de la fila, pegado a la espina */
 .jugador .retrato {
-  flex: 0 0 3.4rem;
+  flex: 0 0 3.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(38, 52, 64, 0.6);
 }
-.jugador .retrato-img {
-  width: 3.4rem;
-  height: 3.4rem;
-  object-fit: cover;
-}
+.jugador .retrato-img { width: 3.6rem; height: 3.6rem; object-fit: cover; }
 
-/* Insignia oficial del rango: el ancla visual de cada fila */
 .jugador .insignia {
-  flex: 0 0 3.4rem;
+  flex: 0 0 3.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .jugador .insignia-img {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.55rem;
+  height: 2.55rem;
   object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
 
 .jugador .peak-img {
@@ -207,70 +266,61 @@ body {
 .jugador .cuerpo {
   flex: 1;
   min-width: 0;
-  padding: 0.55rem 0.9rem 0.6rem;
+  padding: 0.6rem 1rem 0.65rem 0.35rem;
 }
 
 .jugador .linea1 {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
+  gap: 0.65rem;
 }
 
 .jugador .agente {
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
-  font-size: 1.05rem;
-  letter-spacing: 0.04em;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.jugador .agente.sin-pick { color: var(--apagado); font-style: italic; font-size: 0.9rem; }
+.jugador .agente.sin-pick {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
 
 .jugador .nombre {
   flex: 1;
   min-width: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--apagado);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.jugador .nombre.oculto { font-style: italic; }
+.jugador .nombre.oculto { font-style: italic; color: var(--tenue); }
 .jugador .yo {
-  color: var(--teal);
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  margin-left: 0.4rem;
-}
-
-/* Badges de senal: informativos, no acusaciones — borde fino, sin relleno */
-.jugador .alerta {
-  font-family: Bahnschrift, "Segoe UI", sans-serif;
-  font-stretch: condensed;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 0.12rem 0.4rem;
-  border: 1px solid;
-  border-radius: 2px;
-  white-space: nowrap;
-  cursor: help;
-}
-.jugador .alerta.cheater { color: var(--rojo); border-color: var(--rojo); }
-.jugador .alerta.booster { color: #e8a33c; border-color: #e8a33c; }
-.jugador .alerta.smurf { color: #5aa9e6; border-color: #5aa9e6; }
-
-.jugador .nivel { color: var(--apagado); font-size: 0.75rem; }
-
-/* Marcador de party: mismo numero y color = van juntos */
-.jugador .party {
-  font-family: Bahnschrift, Consolas, monospace;
-  font-size: 0.7rem;
+  font-family: var(--mono);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 0.1rem 0.35rem;
-  border-radius: 2px;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: var(--fondo);
+  background: var(--teal);
+  padding: 0.08rem 0.32rem;
+  margin-left: 0.45rem;
+  vertical-align: 0.1em;
+}
+
+/* Chips: party rellena, alertas con borde. Todo mono y en mayusculas. */
+.jugador .party {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  padding: 0.12rem 0.38rem;
   color: var(--fondo);
   cursor: help;
 }
@@ -280,49 +330,76 @@ body {
 .jugador .party-c4 { background: #ef476f; color: var(--hueso); }
 .jugador .party-c5 { background: #9b5de5; color: var(--hueso); }
 
-.jugador .rr { white-space: nowrap; }
-.jugador .rr b {
-  font-family: Bahnschrift, Consolas, monospace;
-  font-size: 1.2rem;
+.jugador .alerta {
+  font-family: var(--mono);
   font-weight: 600;
-}
-.jugador .rr small {
-  color: var(--apagado);
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-left: 0.25rem;
+  padding: 0.14rem 0.42rem;
+  border: 1px solid;
+  white-space: nowrap;
+  cursor: help;
+}
+.jugador .alerta.cheater { color: var(--rojo); border-color: var(--rojo); background: rgba(255, 70, 85, 0.08); }
+.jugador .alerta.booster { color: #e8a33c; border-color: #e8a33c; background: rgba(232, 163, 60, 0.08); }
+.jugador .alerta.smurf { color: #5aa9e6; border-color: #5aa9e6; background: rgba(90, 169, 230, 0.08); }
+
+.jugador .rr { white-space: nowrap; }
+.jugador .rr b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+}
+.jugador .rr small {
+  font-family: var(--mono);
+  color: var(--tenue);
+  font-size: 0.55rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-left: 0.3rem;
 }
 
 .jugador .linea2 {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.15rem 0.6rem;
-  font-size: 0.8rem;
-  margin-top: 0.15rem;
+  gap: 0.15rem 0.75rem;
+  margin-top: 0.2rem;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
 }
 .jugador .linea2 > span { white-space: nowrap; }
-.jugador .rango-nombre { color: var(--rango); font-weight: 600; }
-.jugador .kda { color: var(--hueso); opacity: 0.85; font-size: 0.75rem; }
-.jugador .peak { color: var(--apagado); font-size: 0.75rem; margin-left: auto; }
+.jugador .rango-nombre {
+  color: var(--rango);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.jugador .kda { color: var(--apagado); }
+.jugador .nivel { color: var(--tenue); }
+.jugador .peak { color: var(--tenue); margin-left: auto; }
 
 .jugador .rr-barra {
   height: 3px;
-  background: var(--linea);
-  margin-top: 0.45rem;
+  background: rgba(38, 52, 64, 0.7);
+  margin-top: 0.5rem;
 }
 .jugador .rr-barra i {
   display: block;
   height: 100%;
   background: var(--rango);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--rango) 65%, transparent);
   transition: width 0.4s ease;
 }
 
 @media (max-width: 760px) {
   .equipos { grid-template-columns: 1fr; }
+  .estado { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fase-punto, .vacio-radar .aguja { animation: none; }
+  .fase-punto, .vacio-radar .aguja, .jugador { animation: none; }
 }

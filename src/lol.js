@@ -55,6 +55,7 @@ export class LolTracker extends EventEmitter {
   }
 
   #status(text) {
+    if (text === this.status) return; // no re-emitir lo mismo cada ciclo
     this.status = text;
     this.emit("status", text);
   }

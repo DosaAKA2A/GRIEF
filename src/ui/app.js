@@ -152,10 +152,12 @@ function pintar(estado) {
   $("fase").hidden = !hayPartida;
 
   if (!hayPartida) {
-    $("vacio-detalle").textContent =
-      estado.phase === null && estado.updatedAt
-        ? "Sin partida ahora mismo. En cuanto entres a una, aparece aqui."
-        : estado.status ?? "";
+    // Sin partida: el detalle por juego va bajo el radar, una linea cada uno.
+    $("estado").textContent = "";
+    const s = estado.status ?? "";
+    $("vacio-detalle").textContent = s.includes("·")
+      ? s.split("·").map((x) => x.trim()).filter(Boolean).join("\n")
+      : s;
     return;
   }
 

@@ -25,7 +25,9 @@ export class MultiTracker extends EventEmitter {
     for (const [game, t] of Object.entries(children)) {
       const snap = this.#snapshots[game];
       t.on("status", (s) => {
-        snap.status = game === "valorant" ? `Valorant: ${s}` : s;
+        const texto = game === "valorant" ? `Valorant: ${s}` : s;
+        if (texto === snap.status) return;
+        snap.status = texto;
         this.#push();
       });
       t.on("match", (m) => {
