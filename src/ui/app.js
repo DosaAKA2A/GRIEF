@@ -60,16 +60,25 @@ function filaJugador(r, juego) {
 
   const espina = el("i", "espina");
   const retrato = el("div", "retrato");
-  if (r.agentId) {
+  const rutaCara = r.agentIcon ?? (r.agentId ? `agentes/${r.agentId}.png` : null);
+  if (rutaCara) {
     const cara = el("img", "retrato-img");
-    cara.src = `agentes/${r.agentId}.png`;
+    cara.src = rutaCara;
     cara.alt = "";
-    cara.onerror = () => cara.remove(); // agente nuevo sin icono local: hueco limpio
+    cara.onerror = () => cara.remove(); // icono ausente: hueco limpio
     retrato.append(cara);
   }
   const insignia = el("div", "insignia");
-  const icono = iconoRango(r.tier, "insignia-img");
-  if (icono) insignia.append(icono);
+  if (r.tierIcon) {
+    const img = el("img", "insignia-img");
+    img.src = r.tierIcon;
+    img.alt = "";
+    img.onerror = () => img.remove();
+    insignia.append(img);
+  } else {
+    const icono = iconoRango(r.tier, "insignia-img");
+    if (icono) insignia.append(icono);
+  }
   const cuerpo = el("div", "cuerpo");
 
   const linea1 = el("div", "linea1");
@@ -125,11 +134,10 @@ function filaJugador(r, juego) {
     cuerpo.append(barra);
   }
   li.append(espina);
-  // En Valorant los huecos se conservan para alinear filas; en LoL/Dota
-  // no hay retratos ni insignias y el espacio sobra.
-  const esValorant = juego == null || juego === "valorant";
-  if (esValorant || retrato.childNodes.length) li.append(retrato);
-  if (esValorant || insignia.childNodes.length) li.append(insignia);
+  // El hueco del retrato se conserva donde hay picks (Valorant/LoL) para
+  // alinear filas; en Dota no hay heroes en el lobby y el espacio sobra.
+  if (juego !== "dota" || retrato.childNodes.length) li.append(retrato);
+  li.append(insignia); // siempre: alinea insignias/medallas
   li.append(cuerpo);
   return li;
 }

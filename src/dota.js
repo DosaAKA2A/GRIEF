@@ -85,10 +85,11 @@ export class DotaTracker extends EventEmitter {
       ]);
       const privado = !perfil?.profile;
       let medalla = "";
+      let nivelMedalla = 0;
       if (perfil?.rank_tier) {
-        const nivel = Math.floor(perfil.rank_tier / 10);
+        nivelMedalla = Math.floor(perfil.rank_tier / 10);
         const estrellas = perfil.rank_tier % 10;
-        medalla = `${MEDALLAS[nivel] ?? "?"}${nivel < 8 ? " " + estrellas : ""}`;
+        medalla = `${MEDALLAS[nivelMedalla] ?? "?"}${nivelMedalla < 8 ? " " + estrellas : ""}`;
         if (perfil.leaderboard_rank) medalla += ` #${perfil.leaderboard_rank}`;
       }
       let extra = "";
@@ -116,11 +117,12 @@ export class DotaTracker extends EventEmitter {
         name: perfil?.profile?.personaname ?? `(privado ${accountId})`,
         privado,
         medalla: privado && !medalla ? "perfil privado" : medalla || "sin medalla",
+        tierIcon: `dota/rangos/${nivelMedalla}.png`,
         extra,
         kda,
       };
     } catch {
-      out = { name: `ID ${accountId}`, privado: true, medalla: "sin datos", extra: "", kda: null };
+      out = { name: `ID ${accountId}`, privado: true, medalla: "sin datos", tierIcon: "dota/rangos/0.png", extra: "", kda: null };
     }
     playerCache.set(accountId, out);
     return out;
@@ -159,6 +161,7 @@ export class DotaTracker extends EventEmitter {
       agentId: null,
       tier: null,
       tierLabel: j.medalla,
+      tierIcon: j.tierIcon,
       rr: null,
       me: false,
       incognito: j.privado,

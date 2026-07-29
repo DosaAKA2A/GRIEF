@@ -16,9 +16,10 @@ const TIERS_LOL = {
 const DIV = { I: "1", II: "2", III: "3", IV: "4" };
 
 const rankCache = new TtlCache(10 * 60e3);
-let champMap = null; // championId -> nombre (ddragon, una vez)
+let champMap = null; // { porId: id -> nombre, porNombre: nombre normalizado -> id }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 async function champions() {
   if (champMap) return champMap;
@@ -27,9 +28,13 @@ async function champions() {
     const data = await requestOk(
       `https://ddragon.leagueoflegends.com/cdn/${versions[0]}/data/es_MX/champion.json`
     );
-    champMap = new Map(Object.values(data.data).map((c) => [Number(c.key), c.name]));
+    const lista = Object.values(data.data);
+    champMap = {
+      porId: new Map(lista.map((c) => [Number(c.key), c.name])),
+      porNombre: new Map(lista.flatMap((c) => [[norm(c.name), Number(c.key)], [norm(c.id), Number(c.key)]])),
+    };
   } catch {
-    champMap = new Map();
+    champMap = { porId: new Map(), porNombre: new Map() };
   }
   return champMap;
 }
@@ -106,6 +111,7 @@ export class LolTracker extends EventEmitter {
         const esDivisible = !["MASTER", "GRANDMASTER", "CHALLENGER"].includes(solo.tier);
         out = {
           label: `${TIERS_LOL[solo.tier] ?? solo.tier}${esDivisible ? " " + (DIV[solo.division] ?? solo.division ?? "") : ""}`.trim(),
+          icon: `lol/rangos/${solo.tier.toLowerCase()}.svg`,
           lp: solo.leaguePoints ?? null,
           wins: solo.wins ?? null,
           losses: solo.losses ?? null,
@@ -130,20 +136,24 @@ export class LolTracker extends EventEmitter {
         yo = ap.body?.riotId ?? null;
       } catch {}
       const lcu = await this.#lcu().catch(() => null);
+      const champs = await champions();
       const rows = [];
       for (const p of live.body) {
         if (p.isBot) continue;
         const riotId = p.riotIdGameName
           ? `${p.riotIdGameName}#${p.riotIdTagLine ?? ""}`.replace(/#$/, "")
           : p.summonerName ?? "?";
+        const champId = champs.porNombre.get(norm(p.championName));
         rows.push({
           puuid: riotId,
           team: p.team === "ORDER" ? "Azul" : "Rojo",
           name: riotId,
           agent: p.championName ?? "-",
           agentId: null,
+          agentIcon: champId ? `lol/champs/${champId}.png` : null,
           tier: null,
           tierLabel: "",
+          tierIcon: null,
           rr: null,
           me: yo != null && riotId === yo,
           incognito: false,
@@ -166,6 +176,7 @@ export class LolTracker extends EventEmitter {
               const rank = await this.#rank(lcu, puuid);
               if (rank) {
                 r.tierLabel = rank.label;
+                r.tierIcon = rank.icon;
                 r.rr = rank.lp;
                 if (rank.wins != null && rank.losses != null) {
                   r.linea2extra += ` · ${rank.wins}W-${rank.losses}L`;
@@ -213,10 +224,12 @@ export class LolTracker extends EventEmitter {
           puuid: m.puuid || String(m.cellId),
           team: "Azul",
           name,
-          agent: champs.get(m.championId) ?? (m.championId ? String(m.championId) : "-"),
+          agent: champs.porId.get(m.championId) ?? (m.championId ? String(m.championId) : "-"),
           agentId: null,
+          agentIcon: m.championId ? `lol/champs/${m.championId}.png` : null,
           tier: null,
-          tierLabel: rank?.label ?? "",
+          tierLabel: rank?.label ?? "Sin clasificar",
+          tierIcon: rank?.icon ?? "lol/rangos/unranked.svg",
           rr: rank?.lp ?? null,
           me: false,
           incognito: name === "(oculto)",
