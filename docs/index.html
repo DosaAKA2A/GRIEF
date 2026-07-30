@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GRIEF — lee la partida antes de jugarla</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <meta name="description" content="Tracker de escritorio para Valorant, League of Legends y Dota 2: rangos, KDA, parties y señales de smurfs antes de que empiece la partida. Sin overlay, sin Overwolf.">
   <style>
     @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/geist-mono-400.woff2") format("woff2"); }
@@ -67,7 +68,13 @@
       height: 1px;
       background: linear-gradient(90deg, var(--rojo) 0, var(--linea) 160px, var(--linea) 70%, transparent);
     }
-    .marca { font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: 0.22em; color: var(--rojo); }
+    .marca { display: inline-flex; align-items: center; gap: 0.55rem; }
+    .marca img { width: 1.35rem; height: 1.35rem; }
+    .marca b {
+      font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: 0.22em;
+      background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
     .marca-sub { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--apagado); }
     nav { margin-left: auto; display: flex; gap: 1.5rem; }
     nav a {
@@ -166,7 +173,7 @@
 <body>
   <div class="contenedor">
     <header>
-      <span class="marca">GRIEF</span>
+      <span class="marca"><img src="logo.svg" alt=""><b>GRIEF</b></span>
       <span class="marca-sub">Match tracker</span>
       <nav>
         <a href="#juegos">Juegos</a>

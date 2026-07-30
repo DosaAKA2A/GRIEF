@@ -67,15 +67,22 @@ body::before {
 }
 
 .marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.marca-logo { width: 1.35rem; height: 1.35rem; }
+.marca-nombre {
   font-family: var(--display);
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: 0.22em;
-  color: var(--rojo);
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
+.marca .marca-sub { margin-left: 0.35rem; }
 .marca .marca-sub {
   font-family: var(--mono);
   font-weight: 500;
