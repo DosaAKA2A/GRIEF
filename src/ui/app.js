@@ -104,10 +104,13 @@ function filaJugador(r, juego) {
   const izq = el("span", "l2-izq");
   if (r.tierLabel) izq.append(el("span", "rango-nombre", r.tierLabel));
   if (r.peak > r.tier) {
+    // Solo "Peak" + medalla: el nombre del rango repetia la medalla y salia
+    // truncado. El nombre completo queda en el tooltip.
     const peak = el("span", "peak", "Peak ");
     const peakIcono = iconoRango(r.peak, "peak-img");
     if (peakIcono) peak.append(peakIcono);
-    peak.append(document.createTextNode(" " + r.peakLabel));
+    else peak.append(document.createTextNode(" " + r.peakLabel));
+    peak.title = `Peak: ${r.peakLabel}`;
     izq.append(peak);
   }
   if (r.level != null) izq.append(el("span", "nivel", `Nv ${r.level}`));
