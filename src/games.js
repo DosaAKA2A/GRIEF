@@ -46,6 +46,10 @@ export class MultiTracker extends EventEmitter {
         snap.updatedAt = Date.now();
         this.#push();
       });
+      t.on("profile", (p) => {
+        snap.perfil = p;
+        this.#push();
+      });
       t.start().catch((err) => {
         // Ultima red de seguridad: mensaje humano en la UI, detalle en consola.
         console.error(`[${game}] error fatal:`, err);
@@ -81,6 +85,7 @@ export class MultiTracker extends EventEmitter {
         servidor: s.servidor ?? null,
         lado: s.lado ?? null,
         modo: s.modo ?? null,
+        perfil: this.#snapshots.valorant.perfil ?? null,
         updatedAt: s.updatedAt,
       };
     }
@@ -91,6 +96,7 @@ export class MultiTracker extends EventEmitter {
       phase: null,
       label: null,
       rows: [],
+      perfil: this.#snapshots.valorant.perfil ?? null,
       updatedAt: Math.max(...Object.values(this.#snapshots).map((s) => s.updatedAt)) || null,
     };
   }

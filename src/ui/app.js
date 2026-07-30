@@ -169,24 +169,114 @@ function filaJugador(r, juego) {
   return li;
 }
 
-function pintar(estado) {
-  $("estado").textContent = estado.status ?? "";
-  $("juego").textContent = estado.gameLabel ?? "Valorant · LoL";
+// Tile de estadistica del perfil: valor grande + rotulo + contexto.
+function tilePerfil(valor, rotulo, sub, clase) {
+  const tile = el("div", "perfil-tile");
+  tile.append(el("b", clase ?? "", valor ?? "—"), el("small", null, rotulo));
+  if (sub) tile.append(el("span", "perfil-tile-sub", sub));
+  return tile;
+}
 
+function filaPartida(p) {
+  const li = el("li", "partida " + (p.won ? "ganada" : "perdida"));
+  const mapa = el("div", "partida-mapa");
+  if (p.slug) mapa.style.backgroundImage = `linear-gradient(90deg, rgba(15,25,35,0.35), rgba(15,25,35,0.8)), url("valorant/mapas/${p.slug}.png")`;
+  mapa.append(el("b", null, p.mapa ?? "—"), el("small", null, p.won ? "Victoria" : "Derrota"));
+
+  const retrato = el("div", "partida-agente");
+  if (p.agentId) {
+    const img = el("img", null);
+    img.src = `agentes/${p.agentId}.png`;
+    img.alt = "";
+    img.onerror = () => img.remove();
+    retrato.append(img);
+  }
+
+  const cuerpo = el("div", "partida-cuerpo");
+  cuerpo.append(el("span", "partida-agente-nombre", p.agente ?? ""));
+  if (p.modo) cuerpo.append(el("span", "partida-modo", p.modo));
+
+  const stats = el("div", "partida-stats");
+  const kdaTxt = `${p.k}/${p.d}/${p.a}`;
+  const ratio = p.d > 0 ? (p.k + p.a) / p.d : p.k + p.a;
+  for (const [valor, rotulo, clase] of [
+    [kdaTxt, "KDA", ratio >= 1.3 ? "bien" : ratio <= 0.8 ? "mal" : ""],
+    [p.acs, "ACS", ""],
+    [p.adr, "ADR", ""],
+    [p.hs != null ? p.hs + "%" : null, "HS", p.hs >= 30 ? "alto" : ""],
+  ]) {
+    const st = el("div", "partida-stat");
+    st.append(el("b", clase, valor ?? "—"), el("small", null, rotulo));
+    stats.append(st);
+  }
+
+  li.append(mapa, retrato, cuerpo, stats);
+  return li;
+}
+
+function pintarPerfil(p) {
+  const icono = p.tier >= 3 ? `rangos/${p.tier}.png` : null;
+  $("perfil-rango-img").src = icono ?? "";
+  $("perfil-rango-img").hidden = !icono;
+  $("perfil-rango-nombre").textContent = p.tierLabel ?? "Sin rango";
+  $("perfil-rango-nombre").style.color = colorRango(p.tier);
+  $("perfil-rr").textContent = p.rr != null ? `${p.rr} RR` : "";
+  $("perfil-rr-relleno").style.width = Math.min(100, Math.max(0, p.rr ?? 0)) + "%";
+  $("perfil-rr-relleno").style.background = colorRango(p.tier);
+
+  $("perfil-nombre").textContent = p.name || "Tu perfil";
+  const partes = [];
+  if (p.level != null) partes.push(`Nivel ${p.level}`);
+  if (p.seasons) partes.push(`${p.seasons} temporada${p.seasons === 1 ? "" : "s"}`);
+  if (p.totalGames) partes.push(`${p.totalGames} competitivas en total`);
+  $("perfil-sub").textContent = partes.join(" · ");
+
+  const peakIcono = p.peak >= 3 ? `rangos/${p.peak}.png` : null;
+  $("perfil-peak-img").src = peakIcono ?? "";
+  $("perfil-peak-img").hidden = !peakIcono;
+  $("perfil-peak").textContent = p.peakLabel ?? "—";
+  const agTop = p.agenteTop;
+  $("perfil-agente-img").src = agTop ? `agentes/${agTop.agentId}.png` : "";
+  $("perfil-agente-img").hidden = !agTop;
+  $("perfil-agente").textContent = agTop
+    ? `${agTop.agente ?? ""} · ${Math.round((agTop.wins / agTop.games) * 100)}% WR`
+    : "—";
+
+  const k = p.kda;
+  const tiles = [];
+  if (k) {
+    tiles.push(
+      tilePerfil(k.kda.toFixed(2), "KDA", `${k.kills}/${k.deaths}/${k.assists}`, k.kda >= 1.3 ? "bien" : k.kda <= 0.8 ? "mal" : ""),
+      tilePerfil(k.hsRate != null ? Math.round(k.hsRate * 100) + "%" : null, "HS", "headshots", k.hsRate >= 0.3 ? "alto" : ""),
+      tilePerfil(k.adr != null ? Math.round(k.adr) : null, "ADR", "dano por ronda"),
+      tilePerfil(k.acs != null ? Math.round(k.acs) : null, "ACS", "combat score"),
+      tilePerfil(k.winRate != null ? Math.round(k.winRate * 100) + "%" : null, "WR", `ultimas ${k.games}`, k.winRate >= 0.6 ? "bien" : k.winRate <= 0.4 ? "mal" : "")
+    );
+  }
+  if (p.comp) {
+    tiles.push(tilePerfil(`${p.comp.wins}W-${p.comp.losses}L`, "Racha", p.comp.avgRrWin != null ? `+${Math.round(p.comp.avgRrWin)} RR por victoria` : null));
+  }
+  $("perfil-tiles").replaceChildren(...tiles);
+
+  $("perfil-lista").replaceChildren(...p.partidas.slice(0, 5).map(filaPartida));
+}
+
+function pintar(estado) {
+  $("estado").textContent = "";
   const hayPartida = estado.rows && estado.rows.length > 0;
-  $("vacio").hidden = hayPartida;
+  const hayPerfil = !hayPartida && !!estado.perfil;
+
+  $("juego").textContent = hayPerfil ? "Valorant · Tu perfil" : estado.gameLabel ?? "Valorant · LoL";
+  $("vacio").hidden = hayPartida || hayPerfil;
+  $("perfil").hidden = !hayPerfil;
   $("equipos").hidden = !hayPartida;
   $("fase").hidden = !hayPartida;
 
-  if (!hayPartida) {
-    // Sin partida: el detalle por juego va bajo el radar, una linea cada uno.
-    $("estado").textContent = "";
-    const s = estado.status ?? "";
-    $("vacio-detalle").textContent = s.includes("·")
-      ? s.split("·").map((x) => x.trim()).filter(Boolean).join("\n")
-      : s;
+  if (hayPerfil) {
+    pintarPerfil(estado.perfil);
     return;
   }
+  if (!hayPartida) return;
 
   $("fase-texto").textContent = FASES[estado.phase] ?? estado.label ?? "";
 

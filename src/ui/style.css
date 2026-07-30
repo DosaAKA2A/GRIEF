@@ -311,6 +311,225 @@ body::before {
   white-space: pre-line;
 }
 
+/* ---- Perfil propio (cliente abierto, sin partida) ---- */
+.perfil {
+  width: 100%;
+  max-width: 72.5rem;
+  align-self: start;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.perfil-cab {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  min-height: 7.2rem;
+  padding: 0.9rem 1.4rem;
+  background: linear-gradient(120deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+.perfil-rango { display: flex; align-items: center; gap: 1rem; }
+.perfil-rango-img {
+  width: 4.4rem;
+  height: 4.4rem;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.55));
+}
+.perfil-rango-textos { display: flex; flex-direction: column; gap: 0.3rem; }
+.perfil-rango-nombre {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.perfil-rr {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.perfil-rr-barra { width: 9.5rem; height: 4px; background: rgba(38, 52, 64, 0.7); }
+.perfil-rr-barra i { display: block; height: 100%; }
+
+.perfil-id { flex: 1; min-width: 0; }
+.perfil-id h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.55rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perfil-sub {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+
+.perfil-lados { display: flex; gap: 1.8rem; }
+.perfil-lado { display: flex; align-items: center; gap: 0.65rem; }
+.perfil-peak-img { width: 2.7rem; height: 2.7rem; object-fit: contain; }
+.perfil-agente-img { width: 2.7rem; height: 2.7rem; object-fit: cover; border: 1px solid var(--linea); }
+.perfil-lado small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+.perfil-lado span { font-weight: 600; font-size: 0.85rem; color: var(--claro); }
+
+.perfil-tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.8rem; }
+.perfil-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  padding: 0.55rem 0.4rem;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+}
+.perfil-tile b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.perfil-tile b.bien { color: var(--teal); }
+.perfil-tile b.mal { color: var(--rojo); }
+.perfil-tile b.alto { color: #e8a33c; }
+.perfil-tile small {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+.perfil-tile-sub { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.04em; color: var(--claro); }
+
+.perfil-partidas h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--hueso);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--linea);
+  margin-bottom: 0.55rem;
+}
+.perfil-partidas ul { list-style: none; display: grid; gap: 0.5rem; }
+
+.partida {
+  display: flex;
+  align-items: stretch;
+  min-height: 2.78rem;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid rgba(38, 52, 64, 0.9);
+  border-left: 3px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+.partida.ganada { border-left-color: var(--teal); }
+.partida.perdida { border-left-color: var(--rojo); }
+.partida-mapa {
+  flex: 0 0 11rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 0.85rem;
+  background-color: var(--panel-2);
+  background-size: cover;
+  background-position: center 35%;
+}
+.partida-mapa b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+.partida-mapa small {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+.partida.ganada .partida-mapa small { color: var(--teal); }
+.partida.perdida .partida-mapa small { color: var(--rojo); }
+.partida-agente {
+  flex: 0 0 2.78rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(38, 52, 64, 0.6);
+}
+.partida-agente img { width: 2.78rem; height: 2.78rem; object-fit: cover; }
+.partida-cuerpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.partida-agente-nombre { font-weight: 600; font-size: 0.85rem; }
+.partida-modo {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+.partida-stats { display: flex; flex: 0 0 auto; }
+.partida-stat {
+  flex: 0 0 4.7rem;
+  width: 4.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  border-left: 1px solid rgba(38, 52, 64, 0.7);
+}
+.partida-stat b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.partida-stat b.bien { color: var(--teal); }
+.partida-stat b.mal { color: var(--rojo); }
+.partida-stat b.alto { color: #e8a33c; }
+.partida-stat small {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+
 /* ---- Equipos ---- */
 .equipos {
   display: grid;

@@ -65,7 +65,42 @@
         <line x1="50" y1="50" x2="50" y2="2" class="aguja" />
       </svg>
       <h1 class="vacio-titulo">Sin partida</h1>
-      <p id="vacio-detalle" class="vacio-detalle">Esperando al cliente de Riot...</p>
+      <p class="vacio-detalle">Abre Valorant o League of Legends para empezar</p>
+    </section>
+
+    <!-- Perfil propio: se muestra con el cliente abierto y sin partida -->
+    <section id="perfil" class="perfil" hidden>
+      <div class="perfil-cab">
+        <div class="perfil-rango">
+          <img id="perfil-rango-img" class="perfil-rango-img" src="" alt="">
+          <div class="perfil-rango-textos">
+            <span id="perfil-rango-nombre" class="perfil-rango-nombre"></span>
+            <span id="perfil-rr" class="perfil-rr"></span>
+            <div class="perfil-rr-barra"><i id="perfil-rr-relleno"></i></div>
+          </div>
+        </div>
+        <div class="perfil-id">
+          <h1 id="perfil-nombre"></h1>
+          <span id="perfil-sub" class="perfil-sub"></span>
+        </div>
+        <div class="perfil-lados">
+          <div class="perfil-lado">
+            <img id="perfil-peak-img" class="perfil-peak-img" src="" alt="">
+            <div><small>Peak</small><span id="perfil-peak"></span></div>
+          </div>
+          <div class="perfil-lado">
+            <img id="perfil-agente-img" class="perfil-agente-img" src="" alt="">
+            <div><small>Agente top</small><span id="perfil-agente"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="perfil-tiles" class="perfil-tiles"></div>
+
+      <div class="perfil-partidas">
+        <h2>Ultimas competitivas</h2>
+        <ul id="perfil-lista"></ul>
+      </div>
     </section>
 
     <section id="equipos" class="equipos" hidden>

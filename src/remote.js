@@ -124,6 +124,12 @@ export class RemoteApi {
     }
   }
 
+  // Nivel de cuenta propio (el endpoint de XP solo responde para uno mismo).
+  async getAccountLevel(puuid) {
+    const res = await this.#tryGet(`${this.pd}/account-xp/v1/players/${puuid}`);
+    return res?.Progress?.Level ?? null;
+  }
+
   // IDs de las ultimas partidas competitivas del jugador.
   async getHistory(puuid, count = 10) {
     const res = await this.#tryGet(
@@ -138,17 +144,18 @@ export class RemoteApi {
     const hit = matchStatsCache.get(matchId);
     if (hit !== undefined) return hit;
     const res = await withDetailsSlot(() => this.#get(`${this.pd}/match-details/v1/matches/${matchId}`));
-    const stats = {};
+    const jugadores = {};
     const ganadores = new Set((res.teams ?? []).filter((t) => t.won).map((t) => t.teamId));
     const rondas = (res.roundResults ?? []).length;
     for (const p of res.players ?? []) {
-      stats[p.subject] = {
+      jugadores[p.subject] = {
         k: p.stats?.kills ?? 0,
         d: p.stats?.deaths ?? 0,
         a: p.stats?.assists ?? 0,
         score: p.stats?.score ?? 0,
         rounds: p.stats?.roundsPlayed ?? rondas,
         won: ganadores.has(p.teamId),
+        character: (p.characterId ?? "").toLowerCase() || null,
         dmg: 0,
         head: 0,
         body: 0,
@@ -157,7 +164,7 @@ export class RemoteApi {
     }
     for (const round of res.roundResults ?? []) {
       for (const ps of round.playerStats ?? []) {
-        const s = stats[ps.subject];
+        const s = jugadores[ps.subject];
         if (!s) continue;
         for (const dmg of ps.damage ?? []) {
           s.dmg += dmg.damage ?? 0;
@@ -167,6 +174,14 @@ export class RemoteApi {
         }
       }
     }
+    const stats = {
+      jugadores,
+      info: {
+        mapId: res.matchInfo?.mapId ?? null,
+        inicio: res.matchInfo?.gameStartMillis ?? null,
+        queue: res.matchInfo?.queueID ?? null,
+      },
+    };
     matchStatsCache.set(matchId, stats);
     return stats;
   }
@@ -223,7 +238,7 @@ export class RemoteApi {
     let kills = 0, deaths = 0, assists = 0, games = 0, head = 0, body = 0, legs = 0;
     let dmg = 0, score = 0, rounds = 0, wins = 0;
     for (const m of perMatch) {
-      const s = m?.[puuid];
+      const s = m?.jugadores?.[puuid];
       if (!s) continue;
       kills += s.k;
       deaths += s.d;

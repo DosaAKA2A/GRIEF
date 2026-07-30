@@ -129,6 +129,8 @@ export class Tracker extends EventEmitter {
   #wake = null;
   #kickTimer = null;
   #sig; // undefined = arranque; null = fuera de partida; string = firma de la partida
+  #perfilAt = 0; // ultima construccion del perfil propio
+  #perfilBuilding = false;
 
   constructor({ watch = false } = {}) {
     super();
@@ -228,9 +230,12 @@ export class Tracker extends EventEmitter {
     const match = await this.#fetchMatch();
     if (!match) {
       if (this.#sig !== null) {
+        // Al salir de una partida las stats cambiaron: perfil a rehacer.
+        if (this.#sig !== undefined) this.#perfilAt = 0;
         this.#sig = null;
         this.emit("no-match");
       }
+      if (this.watch) this.#maybePerfil();
       return;
     }
     // Firma de la partida: fase + jugadores + picks. Solo emitimos si cambia,
@@ -263,6 +268,82 @@ export class Tracker extends EventEmitter {
       r.alertas = alertas(r);
     });
     this.emit("match", { phase, label: PHASE_LABELS[phase], rows, mapa, servidor, modo });
+  }
+
+  // Perfil propio para la pantalla de reposo: rango, nivel, stats agregadas
+  // y ultimas competitivas. Cache de 5 min; se invalida al terminar partida.
+  #maybePerfil() {
+    if (this.#perfilBuilding || Date.now() - this.#perfilAt < 5 * 60e3) return;
+    this.#perfilBuilding = true;
+    this.#buildPerfil()
+      .then((p) => {
+        this.#perfilAt = Date.now();
+        if (p) this.emit("profile", p);
+      })
+      .catch((err) => console.error("[valorant] perfil:", err.message))
+      .finally(() => {
+        this.#perfilBuilding = false;
+      });
+  }
+
+  async #buildPerfil() {
+    const api = this.api;
+    const puuid = api.puuid;
+    if (!puuid) return null;
+    const [names, mmr, kda, comp, nivel, ids] = await Promise.all([
+      api.getNames([puuid]).catch(() => new Map()),
+      api.getMmr(puuid),
+      api.getKda(puuid).catch(() => null),
+      api.getRecentComp(puuid).catch(() => null),
+      api.getAccountLevel(puuid).catch(() => null),
+      api.getHistory(puuid, 10).catch(() => []),
+    ]);
+    const detalles = await Promise.all(ids.map((id) => api.getMatchStats(id).catch(() => null)));
+    const partidas = [];
+    const porAgente = new Map();
+    for (const d of detalles) {
+      const yo = d?.jugadores?.[puuid];
+      if (!yo) continue;
+      const [mapa, agente] = await Promise.all([mapInfo(d.info?.mapId), agentName(yo.character)]);
+      const disparos = yo.head + yo.body + yo.legs;
+      partidas.push({
+        mapa: mapa?.nombre ?? null,
+        slug: mapa?.slug ?? null,
+        agente,
+        agentId: yo.character,
+        k: yo.k,
+        d: yo.d,
+        a: yo.a,
+        acs: yo.rounds ? Math.round(yo.score / yo.rounds) : null,
+        adr: yo.rounds ? Math.round(yo.dmg / yo.rounds) : null,
+        hs: disparos ? Math.round((yo.head / disparos) * 100) : null,
+        won: yo.won,
+        modo: MODOS[d.info?.queue] ?? null,
+        inicio: d.info?.inicio ?? null,
+      });
+      if (yo.character) {
+        const ag = porAgente.get(yo.character) ?? { agentId: yo.character, agente, games: 0, wins: 0 };
+        ag.games++;
+        if (yo.won) ag.wins++;
+        porAgente.set(yo.character, ag);
+      }
+    }
+    const agenteTop = [...porAgente.values()].sort((a, b) => b.games - a.games)[0] ?? null;
+    return {
+      name: names.get(puuid) ?? "",
+      level: nivel,
+      tier: mmr.currentTier,
+      tierLabel: tierName(mmr.currentTier),
+      rr: mmr.rr,
+      peak: mmr.peakTier,
+      peakLabel: tierName(mmr.peakTier),
+      seasons: mmr.seasonsPlayed ?? null,
+      totalGames: mmr.totalGames ?? null,
+      kda,
+      comp,
+      partidas,
+      agenteTop,
+    };
   }
 
   async #fetchMatch() {

@@ -1,6 +1,6 @@
 {
   "name": "grief",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "GRIEF: tracker ligero de Valorant via API local del cliente de Riot",
   "author": "Estudio de Iris",
   "type": "module",
