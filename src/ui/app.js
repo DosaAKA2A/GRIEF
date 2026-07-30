@@ -43,6 +43,35 @@ function el(tag, className, text) {
   return node;
 }
 
+// Tooltip propio para data-tip. El title nativo se pierde cuando la fila se
+// reconstruye bajo el cursor con cada evento SSE; este se posiciona solo y
+// funciona por delegacion, asi que da igual cuantas veces se repinte el DOM.
+const tip = el("div", "tip");
+tip.hidden = true;
+document.addEventListener("DOMContentLoaded", () => document.body.append(tip));
+
+document.addEventListener("mouseover", (ev) => {
+  const objetivo = ev.target.closest?.("[data-tip]");
+  if (!objetivo) {
+    tip.hidden = true;
+    return;
+  }
+  tip.textContent = objetivo.dataset.tip;
+  tip.hidden = false;
+  const r = objetivo.getBoundingClientRect();
+  tip.style.left = "0px"; // resetea para medir el ancho real
+  tip.style.top = "0px";
+  const ancho = tip.offsetWidth;
+  const alto = tip.offsetHeight;
+  let x = r.left + r.width / 2 - ancho / 2;
+  x = Math.max(8, Math.min(x, window.innerWidth - ancho - 8));
+  let y = r.top - alto - 8;
+  if (y < 8) y = r.bottom + 8;
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+});
+document.addEventListener("scroll", () => { tip.hidden = true; }, true);
+
 // Iconos oficiales en /rangos/{tier}.png; existen del 3 (Hierro 1) al 27
 // (Radiante). Sin rango (0-2) no tiene icono.
 function iconoRango(tier, clase) {
@@ -64,7 +93,7 @@ function filaJugador(r, juego) {
   const espina = el("i", "espina");
   if (r.party) {
     li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
-    espina.title = `Party de ${r.partySize} jugadores`;
+    espina.dataset.tip = `Party de ${r.partySize} jugadores`;
     espina.style.cursor = "help";
   }
 
@@ -110,7 +139,7 @@ function filaJugador(r, juego) {
     const peakIcono = iconoRango(r.peak, "peak-img");
     if (peakIcono) peak.append(peakIcono);
     else peak.append(document.createTextNode(" " + r.peakLabel));
-    peak.title = `Peak: ${r.peakLabel}`;
+    peak.dataset.tip = `Peak: ${r.peakLabel}`;
     izq.append(peak);
   }
   if (r.level != null) izq.append(el("span", "nivel", `Nv ${r.level}`));
@@ -120,7 +149,7 @@ function filaJugador(r, juego) {
     const flags = el("span", "flags");
     for (const a of r.alertas) {
       const chip = el("span", "alerta " + a.tipo, "¿" + a.texto.replace(/^Posible\s+/i, "") + "?");
-      chip.title = `${a.texto}: ${a.detalle}`;
+      chip.dataset.tip = `${a.texto}: ${a.detalle}`;
       flags.append(chip);
     }
     linea2.append(flags);
@@ -135,7 +164,7 @@ function filaJugador(r, juego) {
     statKda.append(b, el("small", null, "KDA"));
     const hs = r.kda.hsRate != null ? Math.round(r.kda.hsRate * 100) : null;
     statKda.append(el("span", "sub" + (hs != null && hs >= 30 ? " alto" : ""), hs != null ? `HS ${hs}%` : `${r.kda.games} partidas`));
-    statKda.title = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas`;
+    statKda.dataset.tip = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas`;
   } else {
     statKda.append(el("b", "vacio", "—"), el("small", null, "KDA"));
   }
@@ -152,7 +181,7 @@ function filaJugador(r, juego) {
       statAdr.append(b, el("small", null, "ADR"));
       const wr = r.kda.winRate != null ? Math.round(r.kda.winRate * 100) : null;
       if (wr != null) statAdr.append(el("span", "sub" + (wr >= 60 ? " alto" : ""), `WR ${wr}%`));
-      if (r.kda.acs != null) statAdr.title = `ACS ${Math.round(r.kda.acs)} · ${Math.round(r.kda.adr)} de dano medio por ronda`;
+      if (r.kda.acs != null) statAdr.dataset.tip = `ACS ${Math.round(r.kda.acs)} · ${Math.round(r.kda.adr)} de dano medio por ronda`;
     } else {
       statAdr.append(el("b", "vacio", "—"), el("small", null, "ADR"));
     }

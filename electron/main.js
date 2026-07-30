@@ -125,11 +125,34 @@ if (!app.requestSingleInstanceLock()) {
       },
     });
     win.removeMenu();
-    win.setAspectRatio(RATIO); // las esquinas escalan; la forma no cambia
-    // Los bordes laterales no redimensionan: solo esquinas (diagonal)
-    win.on("will-resize", (e, _bounds, details) => {
+    // Redimension controlada a mano: setAspectRatio en Windows mantiene la
+    // proporcion de la ventana CON marco, y esa deriva descuadra el lienzo
+    // (aparece scroll al achicar). Aqui se fija siempre el tamano de
+    // CONTENIDO exacto: bordes laterales bloqueados, esquinas en diagonal.
+    win.on("will-resize", (e, nb, details) => {
       const edge = details?.edge ?? "";
-      if (edge && !edge.includes("-")) e.preventDefault();
+      e.preventDefault();
+      if (edge && !edge.includes("-")) return; // lateral: no redimensiona
+      const [ow, oh] = win.getSize();
+      const [cw, ch] = win.getContentSize();
+      const marcoW = ow - cw;
+      const marcoH = oh - ch;
+      const nuevoCw = Math.max(764, nb.width - marcoW);
+      const nuevoCh = Math.round(nuevoCw / RATIO);
+      win.setBounds({
+        x: nb.x,
+        y: nb.y,
+        width: nuevoCw + marcoW,
+        height: nuevoCh + marcoH,
+      });
+    });
+    // Maximizar romperia la proporcion del lienzo: se traduce a encuadre
+    win.on("maximize", () => {
+      win.unmaximize();
+      const display = screen.getDisplayMatching(win.getBounds());
+      const m = encuadre(display);
+      win.setContentSize(m.width, m.height);
+      win.setPosition(m.x, m.y, true);
     });
     win.loadURL(url);
     // Cualquier enlace externo va al navegador del sistema, no a la ventana

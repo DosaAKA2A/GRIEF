@@ -948,6 +948,24 @@ body::before {
   .estado { display: none; }
 }
 
+/* ---- Tooltip propio (data-tip) ---- */
+.tip {
+  position: fixed;
+  z-index: 80;
+  max-width: 26rem;
+  padding: 0.5rem 0.7rem;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--apagado);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  line-height: 1.55;
+  color: var(--hueso);
+  pointer-events: none;
+}
+
 /* Ventana oculta: todas las animaciones en pausa (lo activa app.js) */
 body.oculta *, body.oculta *::before, body.oculta *::after {
   animation-play-state: paused !important;
