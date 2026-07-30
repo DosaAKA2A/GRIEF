@@ -948,6 +948,11 @@ body::before {
   .estado { display: none; }
 }
 
+/* Ventana oculta: todas las animaciones en pausa (lo activa app.js) */
+body.oculta *, body.oculta *::before, body.oculta *::after {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fase-punto, .vacio-radar .aguja, .jugador, .pie-boton::before { animation: none; }
 }

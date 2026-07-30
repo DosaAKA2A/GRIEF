@@ -3,6 +3,12 @@
 // del Riot Client); las llamadas remotas a pd/glz validan TLS normal.
 import https from "node:https";
 
+// Agentes keep-alive compartidos: los sondeos periodicos reutilizan la
+// conexion en vez de rehacer el handshake TLS en cada peticion. Uno para
+// remoto (TLS validado) y otro para la API local self-signed.
+const agenteSeguro = new https.Agent({ keepAlive: true, maxSockets: 8, maxFreeSockets: 4 });
+const agenteLocal = new https.Agent({ keepAlive: true, maxSockets: 8, maxFreeSockets: 4, rejectUnauthorized: false });
+
 export function request(url, { method = "GET", headers = {}, body = null, insecure = false } = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -17,7 +23,7 @@ export function request(url, { method = "GET", headers = {}, body = null, insecu
           ...(payload != null ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) } : {}),
           ...headers,
         },
-        rejectUnauthorized: !insecure,
+        agent: insecure ? agenteLocal : agenteSeguro,
         timeout: 10000,
       },
       (res) => {

@@ -545,3 +545,9 @@ function conectar() {
 }
 
 conectar();
+
+// Con la ventana oculta (minimizada/tapada) las animaciones se pausan:
+// cero trabajo de compositor mientras nadie mira.
+document.addEventListener("visibilitychange", () => {
+  document.body.classList.toggle("oculta", document.hidden);
+});

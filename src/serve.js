@@ -32,8 +32,16 @@ export function startServer({ port = 4327 } = {}) {
     status: "Arrancando...", phase: null, label: null, rows: [], updatedAt: null,
   };
   const clients = new Set();
+  let ultimoJson = null;
 
+  // Solo difunde estados realmente distintos (updatedAt fuera de la firma:
+  // cambia solo y provocaria repintados identicos en la UI).
   function broadcast() {
+    if (!clients.size) return;
+    const { updatedAt, ...resto } = state;
+    const firma = JSON.stringify(resto);
+    if (firma === ultimoJson) return;
+    ultimoJson = firma;
     const data = `data: ${JSON.stringify(state)}\n\n`;
     for (const res of clients) res.write(data);
   }

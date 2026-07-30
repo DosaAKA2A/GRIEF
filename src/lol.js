@@ -16,6 +16,7 @@ const TIERS_LOL = {
 const DIV = { I: "1", II: "2", III: "3", IV: "4" };
 
 const rankCache = new TtlCache(10 * 60e3);
+const aliasCache = new TtlCache(30 * 60e3); // riotId -> puuid (no cambia en la sesion)
 let champMap = null; // { porId: id -> nombre, porNombre: nombre normalizado -> id }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -41,6 +42,8 @@ async function champions() {
 
 export class LolTracker extends EventEmitter {
   #sig;
+  #lcuCache = null; // { creds, at } — evita pedir external-sessions cada ciclo
+  #ritmo = 10000; // ritmo adaptativo: sin cliente de Riot, sondeo lento
   status = "LoL: arrancando...";
 
   async start() {
@@ -50,7 +53,7 @@ export class LolTracker extends EventEmitter {
       } catch (err) {
         this.#status(`LoL: ${err.message}`);
       }
-      await sleep(10000);
+      await sleep(this.#ritmo);
     }
   }
 
@@ -75,7 +78,11 @@ export class LolTracker extends EventEmitter {
   }
 
   // Credenciales del LCU sacadas del propio Riot Client (external-sessions).
+  // Con cache de 5 min: no cambian mientras el cliente siga vivo, y pedirlas
+  // cada ciclo era un handshake+peticion inutiles. Si el LCU deja de
+  // responder, el llamador invalida con #lcuOlvidar().
   async #lcu() {
+    if (this.#lcuCache && Date.now() - this.#lcuCache.at < 5 * 60e3) return this.#lcuCache.creds;
     const lock = await readLockfile();
     const auth = "Basic " + Buffer.from(`riot:${lock.password}`).toString("base64");
     const sessions = await requestOk(`https://127.0.0.1:${lock.port}/product-session/v1/external-sessions`, {
@@ -89,10 +96,16 @@ export class LolTracker extends EventEmitter {
       const port = args.find((a) => a.startsWith("--app-port="))?.split("=")[1];
       const token = args.find((a) => a.startsWith("--remoting-auth-token="))?.split("=")[1];
       if (port && token) {
-        return { base: `https://127.0.0.1:${port}`, auth: "Basic " + Buffer.from(`riot:${token}`).toString("base64") };
+        const creds = { base: `https://127.0.0.1:${port}`, auth: "Basic " + Buffer.from(`riot:${token}`).toString("base64") };
+        this.#lcuCache = { creds, at: Date.now() };
+        return creds;
       }
     }
     return null;
+  }
+
+  #lcuOlvidar() {
+    this.#lcuCache = null;
   }
 
   #lcuGet(lcu, path) {
@@ -126,6 +139,7 @@ export class LolTracker extends EventEmitter {
   }
 
   async #cycle() {
+    this.#ritmo = 10000;
     // 1) En partida: Live Client Data expone a los 10 sin auth.
     const live = await request("https://127.0.0.1:2999/liveclientdata/playerlist", {
       insecure: true,
@@ -168,12 +182,16 @@ export class LolTracker extends EventEmitter {
         await Promise.all(
           rows.map(async (r) => {
             try {
-              const [gameName, tagLine] = r.name.split("#");
-              const look = await this.#lcuGet(
-                lcu,
-                `/lol-summoner/v1/alias/lookup?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine ?? "")}`
-              );
-              const puuid = look.status === 200 ? look.body?.puuid : null;
+              let puuid = aliasCache.get(r.name);
+              if (puuid === undefined) {
+                const [gameName, tagLine] = r.name.split("#");
+                const look = await this.#lcuGet(
+                  lcu,
+                  `/lol-summoner/v1/alias/lookup?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine ?? "")}`
+                );
+                puuid = look.status === 200 ? look.body?.puuid : null;
+                aliasCache.set(r.name, puuid);
+              }
               const rank = await this.#rank(lcu, puuid);
               if (rank) {
                 r.tierLabel = rank.label;
@@ -210,11 +228,19 @@ export class LolTracker extends EventEmitter {
     // 2) Seleccion de campeones via LCU (solo tu equipo).
     const lcu = await this.#lcu().catch(() => null);
     if (!lcu) {
+      // Sin cliente de Riot: sondeo a la mitad de ritmo, no hay prisa.
+      this.#ritmo = 20000;
       this.#status("LoL: cliente no detectado.");
       this.#noMatch();
       return;
     }
-    const cs = await this.#lcuGet(lcu, "/lol-champ-select/v1/session");
+    let cs;
+    try {
+      cs = await this.#lcuGet(lcu, "/lol-champ-select/v1/session");
+    } catch (err) {
+      this.#lcuOlvidar(); // el LCU cambio de puerto o murio: re-descubrir
+      throw err;
+    }
     if (cs.status !== 200 || !Array.isArray(cs.body?.myTeam) || !cs.body.myTeam.length) {
       this.#status("LoL: cliente abierto, sin partida.");
       this.#noMatch();

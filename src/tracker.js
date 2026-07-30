@@ -175,6 +175,7 @@ export class Tracker extends EventEmitter {
   // puerto respondiendo). Cubre lockfile ausente, huerfano y sesion sin iniciar.
   async #connectWhenReady() {
     let waiting = false;
+    let intentos = 0;
     for (;;) {
       try {
         return await this.#connect();
@@ -193,7 +194,9 @@ export class Tracker extends EventEmitter {
           console.error("[valorant] esperando al cliente:", err.message);
           this.emit("status", "Esperando al cliente de Riot... (abre Riot Client / VALORANT)");
         }
-        await this.#sleep(5000);
+        // Backoff suave: tras medio minuto sin cliente, sondeo cada 15 s.
+        intentos++;
+        await this.#sleep(intentos > 6 ? 15000 : 5000);
       }
     }
   }
