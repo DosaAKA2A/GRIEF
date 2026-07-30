@@ -270,13 +270,14 @@ body::before {
 .contenido {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   padding: 1.75rem;
+  min-height: 0;
 }
 
 /* ---- Estado vacio ---- */
-.vacio { text-align: center; color: var(--apagado); }
+.vacio { align-self: center; text-align: center; color: var(--apagado); }
 
 .vacio-radar { width: 130px; height: 130px; margin-bottom: 1.5rem; opacity: 0.9; }
 .vacio-radar circle { fill: none; stroke: var(--linea); stroke-width: 1.5; }
@@ -306,16 +307,20 @@ body::before {
   white-space: pre-line;
 }
 
-/* ---- Equipos ---- */
+/* ---- Equipos ----
+   La reticula reparte TODO el alto disponible: la banda arriba (auto) y las
+   listas estirandose por igual. Nada de espacio muerto bajo las cartas. */
 .equipos {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 1.75rem;
   width: 100%;
   max-width: 1160px;
-  align-self: start;
 }
 .equipos.solo-aliado { grid-template-columns: minmax(0, 600px); justify-content: center; }
+.equipos .banda { grid-row: 1; }
+.equipos .equipo { grid-row: 2; display: flex; flex-direction: column; min-height: 0; }
 
 .equipo h2 {
   display: flex;
@@ -351,7 +356,14 @@ body::before {
 .equipo.aliado h2::after { background: var(--teal); }
 .equipo.rival h2::after { background: var(--rojo); }
 
-.equipo ul { list-style: none; display: grid; gap: 0.6rem; }
+.equipo ul {
+  list-style: none;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-auto-rows: minmax(3.9rem, 1fr);
+  gap: 0.6rem;
+}
 
 /* ---- Banda de contexto: mapa+servidor (Valorant) o bando (LoL/Dota) ---- */
 .banda {
@@ -434,7 +446,7 @@ body::before {
   background: rgba(0, 0, 0, 0.3);
   border-right: 1px solid rgba(38, 52, 64, 0.6);
 }
-.jugador .retrato-img { width: 3.6rem; height: 3.6rem; object-fit: cover; }
+.jugador .retrato-img { width: 100%; height: 100%; object-fit: cover; }
 
 .jugador .insignia {
   flex: 0 0 3.5rem;
@@ -443,8 +455,8 @@ body::before {
   justify-content: center;
 }
 .jugador .insignia-img {
-  width: 2.55rem;
-  height: 2.55rem;
+  width: 2.85rem;
+  height: 2.85rem;
   object-fit: contain;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
