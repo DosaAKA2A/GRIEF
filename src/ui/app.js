@@ -9,6 +9,7 @@ const FASES = {
   "lol-game": "En partida",
   "dota-lobby": "Lobby",
   "dota-game": "En partida",
+  "dota-post": "Post-partida",
 };
 
 // Color por indice de tier (0-27). El color es el dato: se lee desde lejos.
@@ -214,7 +215,14 @@ function pintar(estado) {
     aliados = estado.rows;
     rivales = [];
   }
-  $("titulo-aliado").textContent = estado.game === "dota" ? "Jugadores del lobby" : "Tu equipo";
+  if (estado.phase === "dota-post") {
+    // Informe post-partida: titulos por bando real.
+    $("titulo-aliado").textContent = miEquipo;
+    $("titulo-rival").textContent = miEquipo === "Radiant" ? "Dire" : "Radiant";
+  } else {
+    $("titulo-aliado").textContent = estado.game === "dota" ? "Jugadores del lobby" : "Tu equipo";
+    $("titulo-rival").textContent = "Rival";
+  }
 
   $("lista-aliado").replaceChildren(...aliados.map((r) => filaJugador(r, estado.game)));
   $("lista-rival").replaceChildren(...rivales.map((r) => filaJugador(r, estado.game)));

@@ -30,7 +30,52 @@ export class DotaTracker extends EventEmitter {
   #logPath = null;
   #lobbyRows = null; // ultimas filas del lobby (via console.log), si las hay
   #gsiSig = null;
+  #matchId = null;
+  #miCuenta = null; // accountid propio, para marcar tu fila en el informe
   status = "Dota 2: arrancando...";
+
+  // Informe post-partida: los 10 jugadores de la partida recien terminada.
+  // OpenDota tarda 1-3 min en tener la partida; reintenta con paciencia.
+  async #informe(matchId) {
+    this.#status("Dota 2: partida terminada, preparando informe post-partida...");
+    for (let intento = 0; intento < 8; intento++) {
+      await sleep(intento === 0 ? 20000 : 30000);
+      let match;
+      try {
+        match = await requestOk(`https://api.opendota.com/api/matches/${matchId}`);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(match?.players) || !match.players.length) continue;
+      const rows = await Promise.all(
+        match.players.map(async (p) => {
+          const perfil = p.account_id ? await this.#player(p.account_id) : null;
+          return {
+            puuid: String(p.account_id ?? `anon-${p.player_slot}`),
+            team: p.isRadiant ?? p.player_slot < 128 ? "Radiant" : "Dire",
+            name: p.personaname ?? perfil?.name ?? "Anonimo",
+            agent: null,
+            agentIcon: p.hero_id ? `dota/heroes/${p.hero_id}.png` : null,
+            tier: null,
+            tierLabel: perfil?.medalla ?? (p.account_id ? "" : "perfil anonimo"),
+            tierIcon: perfil?.tierIcon ?? "dota/rangos/0.png",
+            rr: null,
+            me: this.#miCuenta != null && String(p.account_id) === String(this.#miCuenta),
+            incognito: !p.account_id,
+            alertas: [],
+            kda: null,
+            linea2extra: `${p.kills ?? 0}/${p.deaths ?? 0}/${p.assists ?? 0} en la partida${perfil?.extra ? " · " + perfil.extra : ""}`,
+          };
+        })
+      );
+      this.#status("Dota 2: informe post-partida listo.");
+      this.#sig = null;
+      this.emit("match", { phase: "dota-post", label: "INFORME POST-PARTIDA (Dota 2)", rows, lado: null });
+      return;
+    }
+    this.#status("Dota 2: OpenDota no tiene esa partida (¿bots o perfil privado del server?).");
+    this.emit("no-match");
+  }
 
   // Estado en vivo via GSI (Game State Integration oficial de Valve).
   // Da el bando (radiant/dire), tu heroe y tu K/D/A en tiempo real.
@@ -41,10 +86,17 @@ export class DotaTracker extends EventEmitter {
     }
     const estado = data?.map?.game_state ?? "";
     const enJuego = /HERO_SELECTION|STRATEGY|SHOWCASE|TEAM_SHOWCASE|WAIT_FOR_MAP|PRE_GAME|IN_PROGRESS/.test(estado);
+    // El MatchID es la llave del informe post-partida via OpenDota.
+    if (data?.map?.matchid && data.map.matchid !== "0") this.#matchId = data.map.matchid;
     if (!enJuego) {
+      const termino = /POST_GAME/.test(estado) || (this.#gsiSig !== null && this.#matchId);
       if (this.#gsiSig !== null) {
         this.#gsiSig = null;
-        if (this.#lobbyRows?.length) {
+        if (termino && this.#matchId) {
+          const id = this.#matchId;
+          this.#matchId = null;
+          this.#informe(id); // async, emite cuando OpenDota tenga la partida
+        } else if (this.#lobbyRows?.length) {
           this.emit("match", { phase: "dota-lobby", label: "LOBBY DETECTADO (Dota 2)", rows: this.#lobbyRows, lado: null });
         } else {
           this.#sig = null;
@@ -54,6 +106,7 @@ export class DotaTracker extends EventEmitter {
       return;
     }
     const lado = data.player?.team_name === "dire" ? "dire" : data.player?.team_name === "radiant" ? "radiant" : null;
+    if (data.player?.accountid) this.#miCuenta = data.player.accountid;
     const heroId = data.hero?.id > 0 ? data.hero.id : null;
     const k = data.player?.kills ?? 0, d = data.player?.deaths ?? 0, a = data.player?.assists ?? 0;
     const sig = `${lado}|${heroId}|${k}/${d}/${a}`;
