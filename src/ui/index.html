@@ -9,6 +9,9 @@
 </head>
 <body>
   <header class="barra">
+    <button id="menu-boton" class="menu-boton" aria-label="Menu" aria-expanded="false">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M1 3h14M1 8h14M1 13h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg>
+    </button>
     <div class="marca"><img src="logo.svg" alt="" class="marca-logo"><span class="marca-nombre">GRIEF</span><span class="marca-sub" id="juego">Valorant · LoL</span></div>
     <div id="fase" class="fase" hidden>
       <i class="fase-punto"></i><span id="fase-texto"></span>
@@ -16,6 +19,43 @@
     <a id="actualizar" class="actualizar" hidden target="_blank" rel="noopener">Actualizar</a>
     <div id="estado" class="estado">Conectando...</div>
   </header>
+
+  <nav id="menu-panel" class="menu-panel" hidden aria-label="Menu de la app">
+    <button id="menu-encuadre" class="menu-item" hidden>Encuadre perfecto</button>
+    <button id="menu-acerca" class="menu-item">Acerca de</button>
+    <button id="menu-terminos" class="menu-item">Terminos y condiciones</button>
+    <button id="menu-actualizar" class="menu-item">Actualizar app</button>
+    <span id="menu-estado" class="menu-estado" hidden></span>
+  </nav>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-caja" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+      <header class="modal-cabecera">
+        <h3 id="modal-titulo"></h3>
+        <button id="modal-cerrar" class="modal-cerrar" aria-label="Cerrar">&#215;</button>
+      </header>
+      <div id="modal-cuerpo" class="modal-cuerpo"></div>
+    </div>
+  </div>
+
+  <template id="tpl-acerca">
+    <p class="modal-destacado">GRIEF <span id="acerca-version"></span></p>
+    <p>Match tracker de Valorant y League of Legends. Lee la API local del cliente de Riot en tu propio equipo: no usa overlays, no inyecta nada en el juego y no envia tus datos a ningun servidor.</p>
+    <p>Un proyecto de Estudio de Iris.</p>
+    <p><a href="https://grief.es" target="_blank" rel="noopener">grief.es</a> &middot; <a href="https://github.com/DosaAKA2A/GRIEF" target="_blank" rel="noopener">GitHub</a></p>
+    <p class="modal-nota">GRIEF no esta afiliado a Riot Games ni cuenta con su respaldo. Riot Games, Valorant y League of Legends son marcas de Riot Games, Inc.</p>
+  </template>
+
+  <template id="tpl-terminos">
+    <p>GRIEF se ofrece tal cual, sin garantias de ningun tipo. Al usar la app aceptas estas condiciones:</p>
+    <ul>
+      <li><b>Datos.</b> GRIEF lee la API local del cliente de Riot y las APIs de partida asociadas a tu sesion. Todo se procesa en tu equipo; no recopilamos, almacenamos ni compartimos datos personales.</li>
+      <li><b>Senales.</b> Las alertas de posible cheater, smurf o booster son heuristicas con margen de error. Son orientativas y no constituyen acusaciones.</li>
+      <li><b>Riot Games.</b> GRIEF no interfiere con el juego (sin overlay, sin inyeccion, sin automatizacion). Aun asi, el uso de herramientas de terceros queda bajo tu responsabilidad conforme a los terminos de servicio de Riot.</li>
+      <li><b>Responsabilidad.</b> Estudio de Iris no se hace responsable de danos derivados del uso de la app ni de decisiones tomadas a partir de la informacion mostrada.</li>
+      <li><b>Actualizaciones.</b> Las versiones nuevas se publican en GitHub. La app solo consulta la version publicada; descargar e instalar es siempre decision tuya.</li>
+    </ul>
+  </template>
 
   <main class="contenido">
     <section id="vacio" class="vacio">

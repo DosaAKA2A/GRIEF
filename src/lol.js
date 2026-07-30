@@ -112,7 +112,7 @@ export class LolTracker extends EventEmitter {
         const esDivisible = !["MASTER", "GRANDMASTER", "CHALLENGER"].includes(solo.tier);
         out = {
           label: `${TIERS_LOL[solo.tier] ?? solo.tier}${esDivisible ? " " + (DIV[solo.division] ?? solo.division ?? "") : ""}`.trim(),
-          icon: `lol/rangos/${solo.tier.toLowerCase()}.svg`,
+          icon: `lol/rangos/${solo.tier.toLowerCase()}.png`,
           lp: solo.leaguePoints ?? null,
           wins: solo.wins ?? null,
           losses: solo.losses ?? null,
@@ -240,7 +240,7 @@ export class LolTracker extends EventEmitter {
           agentIcon: m.championId ? `lol/champs/${m.championId}.png` : null,
           tier: null,
           tierLabel: rank?.label ?? "Sin clasificar",
-          tierIcon: rank?.icon ?? "lol/rangos/unranked.svg",
+          tierIcon: rank?.icon ?? "lol/rangos/unranked.png",
           rr: rank?.lp ?? null,
           me: false,
           incognito: name === "(oculto)",

@@ -7,8 +7,9 @@
   --panel-2: #131d28;
   --linea: #263440;
   --hueso: #ece8e1;
-  --apagado: #7a8894;
-  --tenue: #4d5a66;
+  --claro: #b9c3cd;
+  --apagado: #8a97a3;
+  --tenue: #5d6a76;
   --rojo: #ff4655;
   --teal: #35c9ac;
   --display: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -65,6 +66,132 @@ body::before {
   height: 1px;
   background: linear-gradient(90deg, var(--rojo) 0, var(--linea) 180px, var(--linea) 70%, transparent);
 }
+
+/* Boton de menu: a la izquierda del logo, mismo lenguaje que la barra */
+.menu-boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: none;
+  border: 1px solid var(--linea);
+  color: var(--apagado);
+  cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  transition: color 0.15s, border-color 0.15s;
+}
+.menu-boton:hover,
+.menu-boton[aria-expanded="true"] {
+  color: var(--hueso);
+  border-color: var(--apagado);
+}
+
+.menu-panel {
+  position: absolute;
+  top: 3.1rem;
+  left: 1.5rem;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 15rem;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  padding: 0.4rem 0;
+}
+.menu-item {
+  background: none;
+  border: 0;
+  text-align: left;
+  padding: 0.62rem 1.1rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hueso);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.menu-item:hover { background: rgba(255, 70, 85, 0.1); color: #fff; }
+.menu-estado {
+  padding: 0.55rem 1.1rem 0.7rem;
+  border-top: 1px solid var(--linea);
+  margin-top: 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+  color: var(--apagado);
+}
+.menu-estado a { color: var(--teal); text-decoration: none; border-bottom: 1px solid var(--teal); }
+
+/* ---- Modal: acerca de / terminos ---- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 11, 16, 0.72);
+  backdrop-filter: blur(3px);
+  padding: 1.5rem;
+}
+.modal-caja {
+  width: min(34rem, 100%);
+  max-height: 82vh;
+  overflow: auto;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+}
+.modal-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 1.4rem;
+  border-bottom: 1px solid var(--linea);
+}
+.modal-cabecera h3 {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--hueso);
+}
+.modal-cerrar {
+  background: none;
+  border: 0;
+  color: var(--apagado);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.modal-cerrar:hover { color: var(--rojo); }
+.modal-cuerpo {
+  padding: 1.15rem 1.4rem 1.5rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  color: var(--claro);
+}
+.modal-cuerpo p + p, .modal-cuerpo ul + p, .modal-cuerpo p + ul { margin-top: 0.75rem; }
+.modal-cuerpo ul { padding-left: 1.1rem; display: grid; gap: 0.55rem; }
+.modal-cuerpo b { color: var(--hueso); }
+.modal-cuerpo a { color: var(--teal); text-decoration: none; border-bottom: 1px solid var(--teal); }
+.modal-destacado {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.18em;
+  color: var(--hueso);
+}
+.modal-nota { font-size: 0.7rem; color: var(--apagado); }
 
 .marca {
   display: flex;
@@ -134,7 +261,7 @@ body::before {
   font-family: var(--mono);
   font-size: 0.66rem;
   letter-spacing: 0.05em;
-  color: var(--tenue);
+  color: var(--apagado);
   text-align: right;
   max-width: 46ch;
 }
@@ -363,9 +490,9 @@ body::before {
 .jugador .nombre {
   flex: 1;
   min-width: 0;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 500;
-  color: var(--apagado);
+  color: var(--claro);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -414,7 +541,7 @@ body::before {
   min-height: 1.05rem;
   white-space: nowrap;
   font-family: var(--mono);
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   letter-spacing: 0.05em;
 }
 /* La parte informativa cede (ellipsis); las señales de la derecha, jamas */
@@ -450,7 +577,7 @@ body::before {
 .jugador .stat b {
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   line-height: 1.1;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -460,19 +587,20 @@ body::before {
 .jugador .stat b.vacio { color: var(--tenue); font-weight: 500; }
 .jugador .stat small {
   font-family: var(--mono);
-  color: var(--tenue);
-  font-size: 0.52rem;
+  color: var(--apagado);
+  font-size: 0.56rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 .jugador .stat .sub {
   font-family: var(--mono);
-  font-size: 0.6rem;
+  font-size: 0.66rem;
   letter-spacing: 0.05em;
-  color: var(--apagado);
+  color: var(--claro);
   margin-top: 0.12rem;
 }
 .jugador .stat .sub.alto { color: #e8a33c; font-weight: 600; }
+.jugador .stat-adr { flex-basis: 4.6rem; }
 .jugador .stat-rr { flex-basis: 4.4rem; }
 
 .jugador .rr-barra {

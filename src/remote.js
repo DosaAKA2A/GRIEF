@@ -139,11 +139,17 @@ export class RemoteApi {
     if (hit !== undefined) return hit;
     const res = await withDetailsSlot(() => this.#get(`${this.pd}/match-details/v1/matches/${matchId}`));
     const stats = {};
+    const ganadores = new Set((res.teams ?? []).filter((t) => t.won).map((t) => t.teamId));
+    const rondas = (res.roundResults ?? []).length;
     for (const p of res.players ?? []) {
       stats[p.subject] = {
         k: p.stats?.kills ?? 0,
         d: p.stats?.deaths ?? 0,
         a: p.stats?.assists ?? 0,
+        score: p.stats?.score ?? 0,
+        rounds: p.stats?.roundsPlayed ?? rondas,
+        won: ganadores.has(p.teamId),
+        dmg: 0,
         head: 0,
         body: 0,
         legs: 0,
@@ -154,6 +160,7 @@ export class RemoteApi {
         const s = stats[ps.subject];
         if (!s) continue;
         for (const dmg of ps.damage ?? []) {
+          s.dmg += dmg.damage ?? 0;
           s.head += dmg.headshots ?? 0;
           s.body += dmg.bodyshots ?? 0;
           s.legs += dmg.legshots ?? 0;
@@ -214,6 +221,7 @@ export class RemoteApi {
     const ids = await this.getHistory(puuid, count);
     const perMatch = await Promise.all(ids.map((id) => this.getMatchStats(id).catch(() => null)));
     let kills = 0, deaths = 0, assists = 0, games = 0, head = 0, body = 0, legs = 0;
+    let dmg = 0, score = 0, rounds = 0, wins = 0;
     for (const m of perMatch) {
       const s = m?.[puuid];
       if (!s) continue;
@@ -223,6 +231,10 @@ export class RemoteApi {
       head += s.head ?? 0;
       body += s.body ?? 0;
       legs += s.legs ?? 0;
+      dmg += s.dmg ?? 0;
+      score += s.score ?? 0;
+      rounds += s.rounds ?? 0;
+      if (s.won) wins++;
       games++;
     }
     const shots = head + body + legs;
@@ -234,6 +246,9 @@ export class RemoteApi {
           assists,
           games,
           hsRate: shots > 0 ? head / shots : null,
+          adr: rounds > 0 ? dmg / rounds : null,
+          acs: rounds > 0 ? score / rounds : null,
+          winRate: wins / games,
         }
       : null;
     kdaCache.set(puuid, out);

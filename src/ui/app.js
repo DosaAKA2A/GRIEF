@@ -139,6 +139,23 @@ function filaJugador(r, juego) {
 
   li.append(espina, retrato, insignia, cuerpo, statKda);
 
+  // ADR + win rate de las ultimas competitivas (solo Valorant: sale del
+  // detalle de partida). Mismo sitio en todas las filas, con o sin dato.
+  if (juego !== "lol") {
+    const statAdr = el("div", "stat stat-adr");
+    if (r.kda?.adr != null) {
+      const adr = Math.round(r.kda.adr);
+      const b = el("b", adr >= 160 ? "bien" : adr > 0 && adr <= 110 ? "mal" : "", String(adr));
+      statAdr.append(b, el("small", null, "ADR"));
+      const wr = r.kda.winRate != null ? Math.round(r.kda.winRate * 100) : null;
+      if (wr != null) statAdr.append(el("span", "sub" + (wr >= 60 ? " alto" : ""), `WR ${wr}%`));
+      if (r.kda.acs != null) statAdr.title = `ACS ${Math.round(r.kda.acs)} · ${Math.round(r.kda.adr)} de dano medio por ronda`;
+    } else {
+      statAdr.append(el("b", "vacio", "—"), el("small", null, "ADR"));
+    }
+    li.append(statAdr);
+  }
+
   if (r.rr != null) {
     const statRr = el("div", "stat stat-rr");
     statRr.append(el("b", null, String(r.rr)), el("small", null, rotuloRr));
@@ -211,20 +228,41 @@ function pintar(estado) {
   $("equipos").classList.toggle("solo-aliado", rivales.length === 0);
 }
 
-// Aviso de actualizacion: compara la version local con la ultima release
-// publicada en GitHub; si hay una nueva, muestra el boton con el instalador.
+// true si la version a es posterior a la b ("0.10.1" > "0.9.9")
+function versionMayor(a, b) {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
+
+// Estado de version: compara la local con la ultima release publicada en
+// GitHub. Lo usan el aviso automatico de la barra y el boton del menu.
+async function estadoVersion() {
+  const [local, release] = await Promise.all([
+    fetch("/version").then((r) => r.json()),
+    fetch("https://api.github.com/repos/DosaAKA2A/GRIEF/releases/latest").then((r) => r.json()),
+  ]);
+  const remota = (release.tag_name ?? "").replace(/^v/, "");
+  const setup = release.assets?.find((a) => /setup/i.test(a.name) && a.name.endsWith(".exe"));
+  return {
+    local: local.version,
+    remota: remota || null,
+    nueva: !!remota && versionMayor(remota, local.version),
+    url: setup?.browser_download_url ?? release.html_url ?? "https://github.com/DosaAKA2A/GRIEF/releases",
+  };
+}
+
 async function revisarActualizacion() {
   try {
-    const [local, release] = await Promise.all([
-      fetch("/version").then((r) => r.json()),
-      fetch("https://api.github.com/repos/DosaAKA2A/GRIEF/releases/latest").then((r) => r.json()),
-    ]);
-    const remota = (release.tag_name ?? "").replace(/^v/, "");
-    if (!remota || remota === local.version) return;
-    const setup = release.assets?.find((a) => /setup/i.test(a.name) && a.name.endsWith(".exe"));
+    const v = await estadoVersion();
+    if (!v.nueva) return;
     const boton = $("actualizar");
-    boton.textContent = `Actualizar a v${remota}`;
-    boton.href = setup?.browser_download_url ?? release.html_url;
+    boton.textContent = `Actualizar a v${v.remota}`;
+    boton.href = v.url;
     boton.hidden = false;
   } catch {
     // sin red o sin release: no molestamos
@@ -232,6 +270,82 @@ async function revisarActualizacion() {
 }
 revisarActualizacion();
 setInterval(revisarActualizacion, 6 * 3600e3); // re-chequea cada 6 h
+
+// ---- Menu de la app: encuadre, acerca de, terminos y actualizacion ----
+const menuPanel = $("menu-panel");
+const menuBoton = $("menu-boton");
+
+function cerrarMenu() {
+  menuPanel.hidden = true;
+  menuBoton.setAttribute("aria-expanded", "false");
+}
+
+menuBoton.addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  menuPanel.hidden = !menuPanel.hidden;
+  menuBoton.setAttribute("aria-expanded", String(!menuPanel.hidden));
+});
+document.addEventListener("click", (ev) => {
+  if (!menuPanel.hidden && !menuPanel.contains(ev.target)) cerrarMenu();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  cerrarMenu();
+  $("modal").hidden = true;
+});
+
+// Encuadre perfecto: solo existe dentro de la app de escritorio (preload).
+if (window.grief?.encuadrar) {
+  const b = $("menu-encuadre");
+  b.hidden = false;
+  b.addEventListener("click", () => {
+    window.grief.encuadrar();
+    cerrarMenu();
+  });
+}
+
+function abrirModal(titulo, tplId) {
+  $("modal-titulo").textContent = titulo;
+  $("modal-cuerpo").replaceChildren(document.getElementById(tplId).content.cloneNode(true));
+  $("modal").hidden = false;
+  cerrarMenu();
+}
+
+$("menu-acerca").addEventListener("click", async () => {
+  abrirModal("Acerca de", "tpl-acerca");
+  try {
+    const { version } = await fetch("/version").then((r) => r.json());
+    const span = document.getElementById("acerca-version");
+    if (span) span.textContent = `v${version}`;
+  } catch {}
+});
+$("menu-terminos").addEventListener("click", () => abrirModal("Terminos y condiciones", "tpl-terminos"));
+$("modal-cerrar").addEventListener("click", () => { $("modal").hidden = true; });
+$("modal").addEventListener("click", (ev) => {
+  if (ev.target === $("modal")) $("modal").hidden = true;
+});
+
+// Actualizar app: chequeo bajo demanda con resultado visible en el menu.
+$("menu-actualizar").addEventListener("click", async () => {
+  const estado = $("menu-estado");
+  estado.hidden = false;
+  estado.replaceChildren("Buscando actualizacion...");
+  try {
+    const v = await estadoVersion();
+    if (v.nueva) {
+      const enlace = document.createElement("a");
+      enlace.href = v.url;
+      enlace.target = "_blank";
+      enlace.rel = "noopener";
+      enlace.textContent = `Descargar v${v.remota}`;
+      estado.replaceChildren("Hay version nueva. ", enlace);
+    } else {
+      estado.replaceChildren(`Estas en la ultima version (v${v.local}).`);
+    }
+  } catch {
+    estado.replaceChildren("No se pudo comprobar (sin conexion).");
+  }
+});
 
 function conectar() {
   const fuente = new EventSource("/events");
