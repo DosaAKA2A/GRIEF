@@ -1,34 +1,24 @@
-// Supervisor multi-juego: corre los tres trackers a la vez y expone un
-// estado combinado. El juego activo es el ultimo que tuvo partida; sin
-// partida en ninguno, el estado agrega la situacion de cada juego.
+// Supervisor multi-juego: corre los trackers a la vez y expone un estado
+// combinado. El juego activo es el ultimo que tuvo partida; sin partida en
+// ninguno, el estado agrega la situacion de cada juego.
 import { EventEmitter } from "node:events";
 import { Tracker } from "./tracker.js";
 import { LolTracker } from "./lol.js";
-import { DotaTracker } from "./dota.js";
 
-const LABELS = { valorant: "VALORANT", lol: "League of Legends", dota: "Dota 2" };
+const LABELS = { valorant: "VALORANT", lol: "League of Legends" };
 
 export class MultiTracker extends EventEmitter {
   #snapshots = {
     valorant: { status: "Valorant: arrancando...", phase: null, label: null, rows: [], updatedAt: 0 },
     lol: { status: "LoL: arrancando...", phase: null, label: null, rows: [], updatedAt: 0 },
-    dota: { status: "Dota 2: arrancando...", phase: null, label: null, rows: [], updatedAt: 0 },
   };
   #activo = null;
-  #children = null;
-
-  // Entrada del GSI de Dota (POST del propio juego via serve.js).
-  gsiDota(data) {
-    this.#children?.dota?.gsi(data);
-  }
 
   start() {
     const children = {
       valorant: new Tracker({ watch: true }),
       lol: new LolTracker(),
-      dota: new DotaTracker(),
     };
-    this.#children = children;
     for (const [game, t] of Object.entries(children)) {
       const snap = this.#snapshots[game];
       t.on("status", (s) => {

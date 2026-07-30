@@ -2,15 +2,16 @@
 
 Tracker ligero multi-juego: stats de los jugadores de tu partida antes de empezar. Sin overlay in-game, sin tocar el proceso del juego, sin Overwolf.
 
-- **Valorant** (completo): API local del cliente de Riot — rangos, RR, KDA, HS%, nivel, parties y senales de cheater/smurf/booster.
-- **League of Legends**: LCU + Live Client Data — seleccion de campeones (tu equipo con rango/LP) y en partida los 10 con campeon, KDA en vivo y rango best-effort.
-- **Dota 2** (parcial): requiere `-console -condebug` en las opciones de lanzamiento de Steam; GRIEF parsea el console.log para sacar los SteamID del lobby y consulta OpenDota (medalla, winrate, KDA). Los perfiles privados salen sin datos.
+- **Valorant** (completo): API local del cliente de Riot — mapa y servidor, rangos, RR, KDA, HS%, nivel, parties y senales de cheater/smurf/booster.
+- **League of Legends**: LCU + Live Client Data — seleccion de campeones (tu equipo con rango/LP), bando azul/rojo, y en partida los 10 con campeon, KDA en vivo y rango best-effort.
 
 La app detecta sola que juego esta vivo y muestra ese.
 
+(Dota 2 se descarto: el cliente moderno no expone el roster del lobby por diseño de Valve — solo era posible tu propio estado via GSI y un informe post-partida, insuficiente para el objetivo de la herramienta.)
+
 ## Estado
 
-Fase 4: multi-juego (Valorant / LoL / Dota 2) en app de escritorio (Electron), consola y UI en navegador.
+Fase 4: multi-juego (Valorant / LoL) en app de escritorio (Electron), consola y UI en navegador.
 
 ## Uso
 

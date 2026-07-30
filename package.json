@@ -9,7 +9,6 @@
     "watch": "node src/cli.js --watch",
     "ui": "node src/server.js",
     "app": "electron .",
-    "configurar-dota": "node src/dotasetup.js",
     "dist": "electron-builder --win"
   },
   "engines": {

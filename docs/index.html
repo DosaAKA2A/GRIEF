@@ -128,7 +128,7 @@
     h2 { font-family: var(--display); font-weight: 700; font-size: 1.7rem; letter-spacing: -0.01em; line-height: 1.2; }
 
     /* Juegos */
-    .juegos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2rem; }
+    .juegos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; margin-top: 2rem; }
     .juego {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid var(--linea);
@@ -184,7 +184,7 @@
     </header>
 
     <section class="hero">
-      <p class="eyebrow">Valorant · League of Legends · Dota 2</p>
+      <p class="eyebrow">Valorant · League of Legends</p>
       <h1>Lee la partida <em>antes</em> de jugarla.</h1>
       <p class="sub">GRIEF vive en tu segunda pantalla y te muestra quien es cada uno en tu lobby: rango real, KDA reciente, parties y señales de smurfs o cuentas boosteadas. Sin overlay, sin tocar el juego, sin Overwolf.</p>
       <div class="botones" id="descargar">
@@ -197,20 +197,16 @@
     </section>
 
     <section id="juegos">
-      <p class="eyebrow-seccion">Tres juegos, una app</p>
+      <p class="eyebrow-seccion">Dos juegos, una app</p>
       <h2>Detecta solo el juego que este vivo.</h2>
       <div class="juegos">
         <div class="juego">
           <span class="titulo">VALORANT</span><span class="estado-j completo">Completo</span>
-          <p>Desde la seleccion de agentes: rango e insignia, RR, peak, KDA y HS% de las ultimas competitivas, nivel de cuenta, parties marcadas por color y señales de posible cheater, smurf o booster.</p>
+          <p>Desde la seleccion de agentes: mapa y servidor, rango e insignia, RR, peak, KDA y HS% de las ultimas competitivas, nivel de cuenta, parties marcadas por color y señales de posible cheater, smurf o booster.</p>
         </div>
         <div class="juego">
           <span class="titulo">LEAGUE OF LEGENDS</span><span class="estado-j completo">Activo</span>
-          <p>En seleccion de campeones ves a tu equipo con rango, LP y emblema; en partida, los 10 con su campeon y KDA en vivo de la propia API del juego.</p>
-        </div>
-        <div class="juego">
-          <span class="titulo">DOTA 2</span><span class="estado-j parcial">Parcial</span>
-          <p>Con la opcion -condebug de Steam, GRIEF lee el lobby y trae medalla, winrate y KDA de cada jugador via OpenDota. Los perfiles privados se marcan como tales.</p>
+          <p>En seleccion de campeones ves a tu equipo con rango, LP y emblema; en partida, los 10 con su campeon, el lado que te toco y KDA en vivo de la propia API del juego.</p>
         </div>
       </div>
     </section>
@@ -244,8 +240,6 @@
           <p>No hay cuenta, no hay servidor nuestro, no hay telemetria. Todo se consulta desde tu equipo directo a las API de cada juego.</p>
         </div>
       </div>
-      <figure class="captura" style="margin-top:3rem"><img src="img/captura-dota.png" alt="GRIEF mostrando un lobby de Dota 2 con medallas y winrate por jugador" width="2800" height="1520" loading="lazy"></figure>
-      <p class="pie-captura">Lobby de Dota 2: medallas, winrate y KDA via OpenDota</p>
     </section>
 
     <section class="final">
@@ -261,7 +255,7 @@
       <span>GRIEF — Estudio de Iris</span>
       <a href="https://github.com/DosaAKA2A/GRIEF">GitHub</a>
       <a href="mailto:studio.iris2026@gmail.com">Contacto</a>
-      <span class="der">No afiliado a Riot Games ni a Valve</span>
+      <span class="der">No afiliado a Riot Games</span>
     </footer>
   </div>
 </body>

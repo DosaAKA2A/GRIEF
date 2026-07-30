@@ -252,19 +252,6 @@ body::before {
     url("fondos/lol-rojo.jpg");
   border-color: rgba(255, 70, 85, 0.45);
 }
-.banda.lado-radiant {
-  background-image: linear-gradient(90deg, rgba(15, 25, 35, 0.92) 18%, rgba(15, 25, 35, 0.3) 60%, rgba(15, 25, 35, 0.7)),
-    url("fondos/dota-radiant.jpg");
-  border-color: rgba(70, 176, 131, 0.5);
-}
-.banda.lado-dire {
-  background-image: linear-gradient(90deg, rgba(15, 25, 35, 0.92) 18%, rgba(15, 25, 35, 0.3) 60%, rgba(15, 25, 35, 0.7)),
-    url("fondos/dota-dire.jpg");
-  border-color: rgba(210, 67, 87, 0.5);
-}
-.banda.lado-neutro {
-  background-image: linear-gradient(90deg, rgba(122, 136, 148, 0.18), rgba(15, 25, 35, 0.2));
-}
 
 /* ---- Fila de jugador ----
    Esquina cortada estilo Valorant; la espina marca la PARTY (mismo color =

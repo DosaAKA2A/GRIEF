@@ -7,9 +7,6 @@ const FASES = {
   core: "En partida",
   "lol-champselect": "Seleccion de campeones",
   "lol-game": "En partida",
-  "dota-lobby": "Lobby",
-  "dota-game": "En partida",
-  "dota-post": "Post-partida",
 };
 
 // Color por indice de tier (0-27). El color es el dato: se lee desde lejos.
@@ -97,9 +94,7 @@ function filaJugador(r, juego) {
   const cuerpo = el("div", "cuerpo");
   const linea1 = el("div", "linea1");
   const sinPick = !r.agent || r.agent === "-";
-  if (!(sinPick && juego === "dota")) {
-    linea1.append(el("span", "agente" + (sinPick ? " sin-pick" : ""), sinPick ? "sin pick" : r.agent));
-  }
+  linea1.append(el("span", "agente" + (sinPick ? " sin-pick" : ""), sinPick ? "sin pick" : r.agent));
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
@@ -142,11 +137,7 @@ function filaJugador(r, juego) {
     statKda.append(el("b", "vacio", "—"), el("small", null, "KDA"));
   }
 
-  li.append(espina);
-  // El hueco del retrato se conserva donde hay picks (Valorant/LoL) para
-  // alinear filas; en Dota no hay heroes en el lobby y el espacio sobra.
-  if (juego !== "dota" || retrato.childNodes.length) li.append(retrato);
-  li.append(insignia, cuerpo, statKda);
+  li.append(espina, retrato, insignia, cuerpo, statKda);
 
   if (r.rr != null) {
     const statRr = el("div", "stat stat-rr");
@@ -163,7 +154,7 @@ function filaJugador(r, juego) {
 
 function pintar(estado) {
   $("estado").textContent = estado.status ?? "";
-  $("juego").textContent = estado.gameLabel ?? "Valorant · LoL · Dota 2";
+  $("juego").textContent = estado.gameLabel ?? "Valorant · LoL";
 
   const hayPartida = estado.rows && estado.rows.length > 0;
   $("vacio").hidden = hayPartida;
@@ -196,11 +187,6 @@ function pintar(estado) {
     banda.className = "banda lado-" + estado.lado;
     $("banda-titulo").textContent = estado.lado === "azul" ? "Lado azul" : "Lado rojo";
     $("banda-sub").textContent = estado.lado === "azul" ? "Mitad inferior del mapa" : "Mitad superior del mapa";
-  } else if (estado.game === "dota") {
-    const l = estado.lado;
-    banda.className = "banda " + (l === "radiant" ? "lado-radiant" : l === "dire" ? "lado-dire" : "lado-neutro");
-    $("banda-titulo").textContent = l === "radiant" ? "Radiant" : l === "dire" ? "Dire" : "Lobby detectado";
-    $("banda-sub").textContent = l ? "" : "Bando por determinar";
   } else {
     banda.hidden = true;
   }
@@ -210,19 +196,13 @@ function pintar(estado) {
   const miEquipo = miFila ? miFila.team : estado.rows[0].team;
   let aliados = estado.rows.filter((r) => r.team === miEquipo);
   let rivales = estado.rows.filter((r) => r.team !== miEquipo);
-  // Sin equipos distinguibles (lobby de Dota): una sola lista.
+  // Sin equipos distinguibles: una sola lista.
   if (!aliados.length || miEquipo === "-") {
     aliados = estado.rows;
     rivales = [];
   }
-  if (estado.phase === "dota-post") {
-    // Informe post-partida: titulos por bando real.
-    $("titulo-aliado").textContent = miEquipo;
-    $("titulo-rival").textContent = miEquipo === "Radiant" ? "Dire" : "Radiant";
-  } else {
-    $("titulo-aliado").textContent = estado.game === "dota" ? "Jugadores del lobby" : "Tu equipo";
-    $("titulo-rival").textContent = "Rival";
-  }
+  $("titulo-aliado").textContent = "Tu equipo";
+  $("titulo-rival").textContent = "Rival";
 
   $("lista-aliado").replaceChildren(...aliados.map((r) => filaJugador(r, estado.game)));
   $("lista-rival").replaceChildren(...rivales.map((r) => filaJugador(r, estado.game)));
