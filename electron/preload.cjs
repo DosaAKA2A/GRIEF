@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("grief", {
   encuadrar: () => ipcRenderer.invoke("grief:encuadrar"),
+  capturar: (rect) => ipcRenderer.invoke("grief:capturar", rect),
   actualizar: () => ipcRenderer.invoke("grief:actualizar"),
   onProgreso: (cb) => ipcRenderer.on("grief:progreso", (_ev, pct) => cb(pct)),
 });

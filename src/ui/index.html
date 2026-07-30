@@ -12,7 +12,7 @@
     <button id="menu-boton" class="menu-boton" aria-label="Menu" aria-expanded="false">
       <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M1 3h14M1 8h14M1 13h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></svg>
     </button>
-    <div class="marca"><img src="logo.svg" alt="" class="marca-logo"><span class="marca-nombre">GRIEF</span><span class="marca-sub" id="juego">Valorant · LoL</span></div>
+    <div class="marca"><img src="logo.svg" alt="" class="marca-logo"><span class="marca-nombre">GRIEF</span><span class="marca-tag">Game Tracker</span><span class="marca-sub" id="juego">Valorant · LoL</span></div>
     <div id="fase" class="fase" hidden>
       <i class="fase-punto"></i><span id="fase-texto"></span>
     </div>
@@ -122,12 +122,22 @@
   </main>
 
   <footer id="pie" class="pie" hidden>
-    <button id="pie-encuadre" class="pie-boton" aria-label="Encuadre perfecto" title="Encuadre perfecto">
-      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
-        <path d="M1.5 5V1.5H5M11 1.5h3.5V5M14.5 11v3.5H11M5 14.5H1.5V11" />
-        <rect x="5.5" y="5.5" width="5" height="5" />
-      </svg>
-    </button>
+    <span id="pie-version" class="pie-version"></span>
+    <div class="pie-acciones">
+      <span id="pie-aviso" class="pie-aviso" hidden></span>
+      <button id="pie-encuadre" class="pie-boton" aria-label="Encuadre perfecto" title="Encuadre perfecto">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+          <path d="M1.5 5V1.5H5M11 1.5h3.5V5M14.5 11v3.5H11M5 14.5H1.5V11" />
+          <rect x="5.5" y="5.5" width="5" height="5" />
+        </svg>
+      </button>
+      <button id="pie-captura" class="pie-boton pie-boton--destacado" aria-label="Copiar captura de la partida" title="Copiar captura de la partida">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+          <path d="M1.5 5.5h2.5L5.5 3h5L12 5.5h2.5v8H1.5z" />
+          <circle cx="8" cy="9" r="2.4" />
+        </svg>
+      </button>
+    </div>
   </footer>
 
   <script src="app.js"></script>

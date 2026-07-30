@@ -392,11 +392,54 @@ document.addEventListener("keydown", (ev) => {
   $("modal").hidden = true;
 });
 
-// Encuadre perfecto: barra inferior, solo dentro de la app de escritorio
-// (preload). En el navegador la barra ni aparece.
+// Barra inferior: solo dentro de la app de escritorio (preload). En el
+// navegador la barra ni aparece.
 if (window.grief?.encuadrar) {
   $("pie").hidden = false;
   $("pie-encuadre").addEventListener("click", () => window.grief.encuadrar());
+  fetch("/version")
+    .then((r) => r.json())
+    .then(({ version }) => {
+      $("pie-version").textContent = `v${version}`;
+    })
+    .catch(() => {});
+}
+
+// Captura de la partida al portapapeles: recorta desde la banda del mapa
+// hasta la ultima fila (la seccion visible completa) con un margen.
+let avisoTimer = null;
+function avisoPie(texto) {
+  const aviso = $("pie-aviso");
+  aviso.textContent = texto;
+  aviso.hidden = false;
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(() => {
+    aviso.hidden = true;
+  }, 2600);
+}
+
+if (window.grief?.capturar) {
+  $("pie-captura").addEventListener("click", async () => {
+    const seccion = !$("equipos").hidden ? $("equipos") : !$("perfil").hidden ? $("perfil") : null;
+    if (!seccion) {
+      avisoPie("No hay nada que capturar todavia.");
+      return;
+    }
+    const r = seccion.getBoundingClientRect();
+    const margen = 14;
+    const rect = {
+      x: Math.max(0, Math.round(r.left - margen)),
+      y: Math.max(0, Math.round(r.top - margen)),
+      width: Math.round(Math.min(window.innerWidth, r.width + margen * 2)),
+      height: Math.round(Math.min(window.innerHeight, r.height + margen * 2)),
+    };
+    try {
+      await window.grief.capturar(rect);
+      avisoPie("Captura copiada. Pegala donde quieras.");
+    } catch {
+      avisoPie("No se pudo copiar la captura.");
+    }
+  });
 }
 
 function abrirModal(titulo, tplId) {

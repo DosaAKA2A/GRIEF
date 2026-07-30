@@ -1,7 +1,7 @@
 // GRIEF como app de escritorio: arranca el tracker + servidor local y lo
 // muestra en una ventana propia. Una sola instancia; segunda invocacion
 // enfoca la existente.
-import { app, BrowserWindow, dialog, ipcMain, net, screen, shell } from "electron";
+import { app, BrowserWindow, clipboard, dialog, ipcMain, net, screen, shell } from "electron";
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { join, dirname } from "node:path";
@@ -145,6 +145,15 @@ if (!app.requestSingleInstanceLock()) {
       const m = encuadre(display);
       win.setContentSize(m.width, m.height);
       win.setPosition(m.x, m.y, true);
+    });
+
+    // Captura de la seccion de partida directamente al portapapeles, lista
+    // para pegar en Discord o donde sea. El rect llega en pixeles CSS de la
+    // vista, que es lo que espera capturePage.
+    ipcMain.handle("grief:capturar", async (_ev, rect) => {
+      const img = await win.webContents.capturePage(rect);
+      clipboard.writeImage(img);
+      return { ok: true };
     });
 
     // Actualizacion sin tocar exes: baja el instalador NSIS y lo corre en

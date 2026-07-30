@@ -211,6 +211,17 @@ body::before {
   letter-spacing: 0.22em;
   color: var(--hueso);
 }
+.marca-tag {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--rojo);
+  border: 1px solid rgba(255, 70, 85, 0.55);
+  padding: 0.14rem 0.42rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+}
 .marca .marca-sub { margin-left: 0.35rem; }
 .marca .marca-sub {
   font-family: var(--mono);
@@ -861,10 +872,28 @@ body::before {
 /* ---- Barra inferior: acciones de ventana (solo app de escritorio) ---- */
 .pie {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 0.45rem 1.5rem;
   border-top: 1px solid var(--linea);
+}
+.pie-version {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rojo);
+  border: 1px solid var(--rojo);
+  padding: 0.16rem 0.5rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+}
+.pie-acciones { display: flex; align-items: center; gap: 0.55rem; }
+.pie-aviso {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--claro);
 }
 .pie-boton {
   position: relative;
@@ -897,6 +926,21 @@ body::before {
 .pie-boton:hover::before { animation: barrido-pie 0.55s ease; }
 @keyframes barrido-pie {
   to { transform: translateX(120%); }
+}
+
+/* Boton destacado (captura): relleno con el degradado de GRIEF */
+.pie-boton--destacado {
+  background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
+  border-color: transparent;
+  color: var(--fondo);
+}
+.pie-boton--destacado::before {
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+}
+.pie-boton--destacado:hover {
+  color: var(--fondo);
+  border-color: transparent;
+  filter: brightness(1.12);
 }
 
 @media (max-width: 760px) {
