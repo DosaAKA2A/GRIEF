@@ -67,6 +67,33 @@ export function startServer({ port = 4327 } = {}) {
     for (const res of clients) res.write(": ping\n\n");
   }, 25000).unref();
 
+  // Receptor GSI de Dota 2 en puerto fijo (4328): el juego postea su estado
+  // aqui segun el cfg gamestate_integration_grief.cfg. Si otro proceso GRIEF
+  // ya lo tiene abierto, se omite sin romper nada.
+  const gsi = http.createServer((req, res) => {
+    if (req.method !== "POST") {
+      res.writeHead(405);
+      res.end();
+      return;
+    }
+    let cuerpo = "";
+    req.on("data", (c) => (cuerpo += c));
+    req.on("end", () => {
+      try {
+        tracker.gsiDota(JSON.parse(cuerpo));
+      } catch {
+        // payload raro: ignorar
+      }
+      res.writeHead(200);
+      res.end();
+    });
+  });
+  gsi.on("error", (err) => {
+    if (err.code === "EADDRINUSE") console.log("GSI 4328 en uso por otra instancia de GRIEF; se omite.");
+    else console.error("GSI:", err.message);
+  });
+  gsi.listen(4328, "127.0.0.1");
+
   tracker.start(); // los errores por juego los maneja cada tracker hijo
 
   return new Promise((resolve, reject) => {

@@ -27,7 +27,55 @@ export class DotaTracker extends EventEmitter {
   #sig;
   #offset = 0;
   #logPath = null;
+  #lobbyRows = null; // ultimas filas del lobby (via console.log), si las hay
+  #gsiSig = null;
   status = "Dota 2: arrancando...";
+
+  // Estado en vivo via GSI (Game State Integration oficial de Valve).
+  // Da el bando (radiant/dire), tu heroe y tu K/D/A en tiempo real.
+  gsi(data) {
+    const estado = data?.map?.game_state ?? "";
+    const enJuego = /STRATEGY|SHOWCASE|PRE_GAME|IN_PROGRESS/.test(estado);
+    if (!enJuego) {
+      if (this.#gsiSig !== null) {
+        this.#gsiSig = null;
+        if (this.#lobbyRows?.length) {
+          this.emit("match", { phase: "dota-lobby", label: "LOBBY DETECTADO (Dota 2)", rows: this.#lobbyRows, lado: null });
+        } else {
+          this.#sig = null;
+          this.emit("no-match");
+        }
+      }
+      return;
+    }
+    const lado = data.player?.team_name === "dire" ? "dire" : data.player?.team_name === "radiant" ? "radiant" : null;
+    const heroId = data.hero?.id > 0 ? data.hero.id : null;
+    const k = data.player?.kills ?? 0, d = data.player?.deaths ?? 0, a = data.player?.assists ?? 0;
+    const sig = `${lado}|${heroId}|${k}/${d}/${a}`;
+    if (sig === this.#gsiSig) return;
+    this.#gsiSig = sig;
+    // Con lobby previo mostramos a los 10; sin el, al menos tu fila en vivo.
+    const rows = this.#lobbyRows?.length
+      ? this.#lobbyRows
+      : [{
+          puuid: "gsi-yo",
+          team: "-",
+          name: data.player?.name ?? "Tu",
+          agent: null,
+          agentIcon: heroId ? `dota/heroes/${heroId}.png` : null,
+          tier: null,
+          tierLabel: "",
+          tierIcon: null,
+          rr: null,
+          me: true,
+          incognito: false,
+          alertas: [],
+          kda: null,
+          linea2extra: `${k}/${d}/${a} en vivo`,
+        }];
+    this.#status("Dota 2: en partida (GSI).");
+    this.emit("match", { phase: "dota-game", label: "EN PARTIDA (Dota 2)", rows, lado });
+  }
 
   async start() {
     for (;;) {
@@ -154,7 +202,7 @@ export class DotaTracker extends EventEmitter {
     if (!ids) return;
 
     const jugadores = await Promise.all(ids.map((id) => this.#player(id)));
-    const rows = jugadores.map((j, i) => ({
+    this.#lobbyRows = jugadores.map((j, i) => ({
       puuid: String(ids[i]),
       team: "-",
       name: j.name,
@@ -170,10 +218,10 @@ export class DotaTracker extends EventEmitter {
       kda: j.kda,
       linea2extra: j.extra,
     }));
-    this.#status(`Dota 2: lobby de ${rows.length} jugadores.`);
+    this.#status(`Dota 2: lobby de ${this.#lobbyRows.length} jugadores.`);
     const sig = ids.join(",");
     if (sig === this.#sig) return;
     this.#sig = sig;
-    this.emit("match", { phase: "dota-lobby", label: "LOBBY DETECTADO (Dota 2)", rows });
+    this.emit("match", { phase: "dota-lobby", label: "LOBBY DETECTADO (Dota 2)", rows: this.#lobbyRows });
   }
 }

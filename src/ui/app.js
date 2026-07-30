@@ -8,6 +8,7 @@ const FASES = {
   "lol-champselect": "Seleccion de campeones",
   "lol-game": "En partida",
   "dota-lobby": "Lobby",
+  "dota-game": "En partida",
 };
 
 // Color por indice de tier (0-27). El color es el dato: se lee desde lejos.

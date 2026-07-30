@@ -15,6 +15,12 @@ export class MultiTracker extends EventEmitter {
     dota: { status: "Dota 2: arrancando...", phase: null, label: null, rows: [], updatedAt: 0 },
   };
   #activo = null;
+  #children = null;
+
+  // Entrada del GSI de Dota (POST del propio juego via serve.js).
+  gsiDota(data) {
+    this.#children?.dota?.gsi(data);
+  }
 
   start() {
     const children = {
@@ -22,6 +28,7 @@ export class MultiTracker extends EventEmitter {
       lol: new LolTracker(),
       dota: new DotaTracker(),
     };
+    this.#children = children;
     for (const [game, t] of Object.entries(children)) {
       const snap = this.#snapshots[game];
       t.on("status", (s) => {
