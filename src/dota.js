@@ -8,6 +8,7 @@ import { EventEmitter } from "node:events";
 import { stat, open } from "node:fs/promises";
 import { requestOk } from "./http.js";
 import { TtlCache } from "./cache.js";
+import { instalarGsiSiFalta } from "./dotasetup.js";
 
 const MEDALLAS = [
   "", "Heraldo", "Guardian", "Cruzado", "Arconte", "Leyenda", "Ancestral", "Divino", "Inmortal",
@@ -82,6 +83,13 @@ export class DotaTracker extends EventEmitter {
   }
 
   async start() {
+    // El cfg de GSI es el mecanismo oficial de Valve y se instala solo si
+    // falta. Las opciones de lanzamiento NO se tocan aqui: eso lo decide el
+    // usuario con `npm run configurar-dota` (requiere Steam cerrado).
+    try {
+      const aviso = await instalarGsiSiFalta();
+      if (aviso) this.#status(aviso);
+    } catch {}
     for (;;) {
       try {
         await this.#cycle();
