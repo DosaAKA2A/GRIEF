@@ -77,10 +77,7 @@ body::before {
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: 0.22em;
-  background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--hueso);
 }
 .marca .marca-sub { margin-left: 0.35rem; }
 .marca .marca-sub {
@@ -113,6 +110,24 @@ body::before {
 @keyframes latido {
   50% { opacity: 0.3; }
 }
+
+/* Boton de actualizacion: solo aparece cuando hay una version nueva */
+.actualizar {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--fondo);
+  background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
+  padding: 0.4rem 0.85rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  transition: filter 0.15s;
+}
+.actualizar:hover { filter: brightness(1.15); }
+.actualizar:not([hidden]) ~ .estado { margin-left: 1rem; }
 
 .estado {
   margin-left: auto;

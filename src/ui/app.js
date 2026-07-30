@@ -211,6 +211,28 @@ function pintar(estado) {
   $("equipos").classList.toggle("solo-aliado", rivales.length === 0);
 }
 
+// Aviso de actualizacion: compara la version local con la ultima release
+// publicada en GitHub; si hay una nueva, muestra el boton con el instalador.
+async function revisarActualizacion() {
+  try {
+    const [local, release] = await Promise.all([
+      fetch("/version").then((r) => r.json()),
+      fetch("https://api.github.com/repos/DosaAKA2A/GRIEF/releases/latest").then((r) => r.json()),
+    ]);
+    const remota = (release.tag_name ?? "").replace(/^v/, "");
+    if (!remota || remota === local.version) return;
+    const setup = release.assets?.find((a) => /setup/i.test(a.name) && a.name.endsWith(".exe"));
+    const boton = $("actualizar");
+    boton.textContent = `Actualizar a v${remota}`;
+    boton.href = setup?.browser_download_url ?? release.html_url;
+    boton.hidden = false;
+  } catch {
+    // sin red o sin release: no molestamos
+  }
+}
+revisarActualizacion();
+setInterval(revisarActualizacion, 6 * 3600e3); // re-chequea cada 6 h
+
 function conectar() {
   const fuente = new EventSource("/events");
   fuente.onmessage = (ev) => pintar(JSON.parse(ev.data));

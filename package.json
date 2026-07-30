@@ -1,6 +1,6 @@
 {
   "name": "grief",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "GRIEF: tracker ligero de Valorant via API local del cliente de Riot",
   "type": "module",
   "main": "electron/main.js",
@@ -35,7 +35,11 @@
     },
     "nsis": {
       "oneClick": true,
-      "perMachine": false
+      "perMachine": false,
+      "artifactName": "GRIEF-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "GRIEF-Portable.${ext}"
     }
   }
 }

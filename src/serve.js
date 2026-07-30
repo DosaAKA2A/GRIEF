@@ -9,6 +9,13 @@ import { MultiTracker } from "./games.js";
 
 const UI_DIR = join(dirname(fileURLToPath(import.meta.url)), "ui");
 
+// Version propia (para que la UI compare contra la ultima release publicada).
+let VERSION = "0.0.0";
+try {
+  const pkg = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"));
+  VERSION = pkg.version ?? VERSION;
+} catch {}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -39,6 +46,11 @@ export function startServer({ port = 4327 } = {}) {
 
   const server = http.createServer(async (req, res) => {
     const path = req.url.split("?")[0];
+    if (path === "/version") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ version: VERSION }));
+      return;
+    }
     if (path === "/events") {
       res.writeHead(200, {
         "Content-Type": "text/event-stream",

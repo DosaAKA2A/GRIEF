@@ -72,8 +72,7 @@
     .marca img { width: 1.35rem; height: 1.35rem; }
     .marca b {
       font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: 0.22em;
-      background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
+      color: var(--hueso);
     }
     .marca-sub { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--apagado); }
     nav { margin-left: auto; display: flex; gap: 1.5rem; }
@@ -164,9 +163,56 @@
     footer a:hover { color: var(--hueso); }
     footer .der { margin-left: auto; }
 
+    /* ---- Animaciones ---- */
+    @keyframes sube {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero > * { animation: sube 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+    .hero > *:nth-child(1) { animation-delay: 0.05s; }
+    .hero > *:nth-child(2) { animation-delay: 0.15s; }
+    .hero > *:nth-child(3) { animation-delay: 0.25s; }
+    .hero > *:nth-child(4) { animation-delay: 0.35s; }
+    .hero > *:nth-child(5) { animation-delay: 0.42s; }
+    .hero > *:nth-child(6) { animation-delay: 0.55s; }
+    .hero > *:nth-child(7) { animation-delay: 0.62s; }
+
+    /* Reveal al hacer scroll (activado por JS con IntersectionObserver) */
+    .reveal {
+      opacity: 0;
+      transform: translateY(26px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visto { opacity: 1; transform: none; }
+    .reveal:nth-child(2) { transition-delay: 0.08s; }
+    .reveal:nth-child(3) { transition-delay: 0.16s; }
+
+    /* Micro-interacciones */
+    .juego, .rasgo { transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease; }
+    .juego:hover { transform: translateY(-4px); border-color: rgba(122, 136, 148, 0.55); }
+    .rasgo:hover { transform: translateY(-3px); }
+    .captura { transition: transform 0.4s ease, box-shadow 0.4s ease; }
+    .captura:hover { transform: translateY(-4px); box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55); }
+    .btn { transition: filter 0.15s, background 0.15s, transform 0.15s; }
+    .btn:active { transform: translateY(1px); }
+    .marca img { transition: transform 0.4s ease; }
+    header:hover .marca img { transform: rotate(-12deg); }
+
+    /* Latido lento del glow del fondo */
+    @keyframes deriva {
+      0%, 100% { background-position: 0% 0%, 0% 0%; }
+      50% { background-position: 3% 2%, -2% -1%; }
+    }
+
     @media (max-width: 760px) {
       .juegos, .rasgos { grid-template-columns: 1fr; }
       nav { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero > * { animation: none; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .juego, .rasgo, .captura, .marca img { transition: none; }
     }
   </style>
 </head>
@@ -188,54 +234,56 @@
       <h1>Lee la partida <em>antes</em> de jugarla.</h1>
       <p class="sub">GRIEF vive en tu segunda pantalla y te muestra quien es cada uno en tu lobby: rango real, KDA reciente, parties y señales de smurfs o cuentas boosteadas. Sin overlay, sin tocar el juego, sin Overwolf.</p>
       <div class="botones" id="descargar">
-        <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF.Setup.0.1.0.exe">Descargar para Windows</a>
-        <a class="btn btn-borde" href="https://github.com/DosaAKA2A/GRIEF/releases/latest">Version portable</a>
+        <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF-Setup.exe">Descargar para Windows</a>
+        <a class="btn btn-borde" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF-Portable.exe">Version portable</a>
       </div>
       <p class="nota">Gratis · Windows 10/11 · codigo abierto</p>
       <figure class="captura"><img src="img/captura-valorant.png" alt="GRIEF mostrando una partida de Valorant con rangos, KDA y señales por jugador" width="2800" height="1520"></figure>
-      <p class="pie-captura">Partida de Valorant: los 10 con rango, RR, KDA y señales</p>
+      <p class="pie-captura">Partida de Valorant: mapa y servidor, los 10 con rango, RR, KDA y señales</p>
     </section>
 
     <section id="juegos">
-      <p class="eyebrow-seccion">Dos juegos, una app</p>
-      <h2>Detecta solo el juego que este vivo.</h2>
+      <p class="eyebrow-seccion reveal">Dos juegos, una app</p>
+      <h2 class="reveal">Detecta solo el juego que este vivo.</h2>
       <div class="juegos">
-        <div class="juego">
+        <div class="juego reveal">
           <span class="titulo">VALORANT</span><span class="estado-j completo">Completo</span>
           <p>Desde la seleccion de agentes: mapa y servidor, rango e insignia, RR, peak, KDA y HS% de las ultimas competitivas, nivel de cuenta, parties marcadas por color y señales de posible cheater, smurf o booster.</p>
         </div>
-        <div class="juego">
+        <div class="juego reveal">
           <span class="titulo">LEAGUE OF LEGENDS</span><span class="estado-j completo">Activo</span>
           <p>En seleccion de campeones ves a tu equipo con rango, LP y emblema; en partida, los 10 con su campeon, el lado que te toco y KDA en vivo de la propia API del juego.</p>
         </div>
       </div>
+      <figure class="captura reveal" style="margin-top:3rem"><img src="img/captura-lol.png" alt="GRIEF mostrando una partida de League of Legends con el lado rojo, campeones y KDA en vivo" width="2800" height="1520" loading="lazy"></figure>
+      <p class="pie-captura reveal">League of Legends: tu lado del mapa, campeones, emblemas y KDA en vivo</p>
     </section>
 
     <section id="rasgos">
-      <p class="eyebrow-seccion">Que hace distinto</p>
-      <h2>Informacion honesta, al instante.</h2>
+      <p class="eyebrow-seccion reveal">Que hace distinto</p>
+      <h2 class="reveal">Informacion honesta, al instante.</h2>
       <div class="rasgos">
-        <div class="rasgo">
+        <div class="rasgo reveal">
           <h3>Señales, no acusaciones</h3>
           <p>Posible Cheater, Posible Smurf y Posible Booster salen de un puntaje con varias evidencias (HS%, RR por victoria, edad de cuenta, rachas). El motivo exacto siempre esta en el tooltip.</p>
         </div>
-        <div class="rasgo">
+        <div class="rasgo reveal">
           <h3>Parties a la vista</h3>
           <p>Mismo color en la espina de la fila: van juntos. Funciona incluso con jugadores en modo incognito y con el equipo rival.</p>
         </div>
-        <div class="rasgo">
+        <div class="rasgo reveal">
           <h3>Deteccion al instante</h3>
           <p>Un websocket local avisa en cuanto arranca la seleccion de agentes. Nada de refrescar ni esperar sondeos.</p>
         </div>
-        <div class="rasgo">
+        <div class="rasgo reveal">
           <h3>Sin overlay ni inyecciones</h3>
           <p>GRIEF nunca toca el proceso del juego ni su memoria. Lee las API oficiales del cliente, como hacen las webs de stats, pero en tu maquina.</p>
         </div>
-        <div class="rasgo">
+        <div class="rasgo reveal">
           <h3>Ligero de verdad</h3>
           <p>El tracker corre sin dependencias sobre Node y la app pesa lo que pesa su ventana. Pensado para la segunda pantalla.</p>
         </div>
-        <div class="rasgo">
+        <div class="rasgo reveal">
           <h3>Tus datos, en tu PC</h3>
           <p>No hay cuenta, no hay servidor nuestro, no hay telemetria. Todo se consulta desde tu equipo directo a las API de cada juego.</p>
         </div>
@@ -243,10 +291,10 @@
     </section>
 
     <section class="final">
-      <p class="eyebrow-seccion">Listo en un minuto</p>
-      <h2>Instala, juega, y GRIEF hace el resto.</h2>
-      <div class="botones">
-        <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF.Setup.0.1.0.exe">Descargar para Windows</a>
+      <p class="eyebrow-seccion reveal">Listo en un minuto</p>
+      <h2 class="reveal">Instala, juega, y GRIEF hace el resto.</h2>
+      <div class="botones reveal">
+        <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF-Setup.exe">Descargar para Windows</a>
         <a class="btn btn-borde" href="https://github.com/DosaAKA2A/GRIEF/releases/latest">Todas las versiones</a>
       </div>
     </section>
@@ -258,5 +306,23 @@
       <span class="der">No afiliado a Riot Games</span>
     </footer>
   </div>
+
+  <script>
+    // Reveal al hacer scroll; si no hay IntersectionObserver, todo visible.
+    const revelables = document.querySelectorAll(".reveal");
+    if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const obs = new IntersectionObserver((entradas) => {
+        for (const e of entradas) {
+          if (e.isIntersecting) {
+            e.target.classList.add("visto");
+            obs.unobserve(e.target);
+          }
+        }
+      }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+      revelables.forEach((el) => obs.observe(el));
+    } else {
+      revelables.forEach((el) => el.classList.add("visto"));
+    }
+  </script>
 </body>
 </html>
