@@ -180,7 +180,7 @@ function tilePerfil(valor, rotulo, sub, clase) {
 function filaPartida(p) {
   const li = el("li", "partida " + (p.won ? "ganada" : "perdida"));
   const mapa = el("div", "partida-mapa");
-  if (p.slug) mapa.style.backgroundImage = `linear-gradient(90deg, rgba(15,25,35,0.35), rgba(15,25,35,0.8)), url("valorant/mapas/${p.slug}.png")`;
+  if (p.slug) mapa.style.backgroundImage = `linear-gradient(90deg, rgba(15,25,35,0.35), rgba(15,25,35,0.8)), url("valorant/mapas/${p.slug}.jpg")`;
   mapa.append(el("b", null, p.mapa ?? "—"), el("small", null, p.won ? "Victoria" : "Derrota"));
 
   const retrato = el("div", "partida-agente");
@@ -287,7 +287,7 @@ function pintar(estado) {
   if (estado.game === "valorant" && estado.mapa) {
     banda.className = "banda";
     banda.style.backgroundImage =
-      `linear-gradient(90deg, rgba(15,25,35,0.95) 18%, rgba(15,25,35,0.35) 60%, rgba(15,25,35,0.75)), url("valorant/mapas/${estado.mapa.slug}.png")`;
+      `linear-gradient(90deg, rgba(15,25,35,0.95) 18%, rgba(15,25,35,0.35) 60%, rgba(15,25,35,0.75)), url("valorant/mapas/${estado.mapa.slug}.jpg")`;
     $("banda-titulo").textContent = estado.mapa.nombre ?? "";
     $("banda-sub").textContent = [estado.modo, estado.servidor ? `Servidor ${estado.servidor}` : null]
       .filter(Boolean)
