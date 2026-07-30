@@ -47,7 +47,9 @@ export class MultiTracker extends EventEmitter {
         this.#push();
       });
       t.start().catch((err) => {
-        snap.status = `${LABELS[game]}: error fatal (${err.message})`;
+        // Ultima red de seguridad: mensaje humano en la UI, detalle en consola.
+        console.error(`[${game}] error fatal:`, err);
+        snap.status = `${LABELS[game]}: no disponible. Reinicia GRIEF para reintentar.`;
         this.#push();
       });
     }

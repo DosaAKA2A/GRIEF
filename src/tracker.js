@@ -145,11 +145,12 @@ export class Tracker extends EventEmitter {
         await this.#loop(ws);
         return; // pasada unica completada
       } catch (err) {
-        // 401/403: tokens caducados o cambio de cuenta -> re-auth completo
-        const recoverable =
-          err.status === 401 || err.status === 403 || err.code === "ECONNREFUSED";
+        // Tokens caducados, cambio de cuenta, cortes de red o respuestas
+        // inesperadas de la API: en watch todo se reintenta con re-auth.
+        const recoverable = err.status != null || err.code != null;
         if (!this.watch || !recoverable) throw err;
-        this.emit("status", "Sesion invalidada (tokens caducados o cambio de cuenta). Reconectando...");
+        console.error("[valorant] reconectando:", err.message);
+        this.emit("status", "Reconectando con el cliente de Riot...");
       } finally {
         ws?.close();
       }
@@ -176,14 +177,18 @@ export class Tracker extends EventEmitter {
       try {
         return await this.#connect();
       } catch (err) {
+        // Cliente apagado (red/lockfile) o vivo pero sin sesion lista (400,
+        // 404 y similares): todo se reintenta. El detalle tecnico no le sirve
+        // al usuario; queda en consola por si hay que depurar.
         const recoverable =
           err.code === "ECONNREFUSED" ||
           err.code === "ENOENT" ||
           err.message.includes("lockfile") ||
-          err.status === 400; // cliente vivo pero sin sesion iniciada
+          err.status != null;
         if (!this.watch || !recoverable) throw err;
         if (!waiting) {
           waiting = true;
+          console.error("[valorant] esperando al cliente:", err.message);
           this.emit("status", "Esperando al cliente de Riot... (abre Riot Client / VALORANT)");
         }
         await this.#sleep(5000);
