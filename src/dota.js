@@ -34,8 +34,12 @@ export class DotaTracker extends EventEmitter {
   // Estado en vivo via GSI (Game State Integration oficial de Valve).
   // Da el bando (radiant/dire), tu heroe y tu K/D/A en tiempo real.
   gsi(data) {
+    if (!this.gsiVivo) {
+      this.gsiVivo = true;
+      this.#status("Dota 2: GSI conectado, el juego esta hablando con GRIEF.");
+    }
     const estado = data?.map?.game_state ?? "";
-    const enJuego = /STRATEGY|SHOWCASE|PRE_GAME|IN_PROGRESS/.test(estado);
+    const enJuego = /HERO_SELECTION|STRATEGY|SHOWCASE|TEAM_SHOWCASE|WAIT_FOR_MAP|PRE_GAME|IN_PROGRESS/.test(estado);
     if (!enJuego) {
       if (this.#gsiSig !== null) {
         this.#gsiSig = null;
