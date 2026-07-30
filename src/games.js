@@ -34,6 +34,7 @@ export class MultiTracker extends EventEmitter {
         snap.mapa = m.mapa ?? null;
         snap.servidor = m.servidor ?? null;
         snap.lado = m.lado ?? null;
+        snap.modo = m.modo ?? null;
         snap.updatedAt = Date.now();
         this.#activo = game;
         this.#push();
@@ -77,6 +78,7 @@ export class MultiTracker extends EventEmitter {
         mapa: s.mapa ?? null,
         servidor: s.servidor ?? null,
         lado: s.lado ?? null,
+        modo: s.modo ?? null,
         updatedAt: s.updatedAt,
       };
     }

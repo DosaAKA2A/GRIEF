@@ -1,12 +1,44 @@
 // GRIEF como app de escritorio: arranca el tracker + servidor local y lo
 // muestra en una ventana propia. Una sola instancia; segunda invocacion
 // enfoca la existente.
-import { app, BrowserWindow, dialog, ipcMain, screen, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net, screen, shell } from "electron";
+import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { startServer } from "../src/serve.js";
 
 const PORT = 43270; // puerto propio de la app, no choca con npm run ui (4327)
+
+// Actualizacion integrada: releases/latest siempre apunta al instalador de la
+// ultima version publicada (lo garantiza el workflow de release del repo).
+const URL_SETUP = "https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF-Setup.exe";
+
+// Descarga con progreso via net (sigue las redirecciones de GitHub solo).
+function descargar(url, destino, onPct) {
+  return new Promise((resolve, reject) => {
+    const req = net.request(url);
+    req.on("response", (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
+      const total = Number(res.headers["content-length"] ?? 0);
+      let leido = 0;
+      const out = createWriteStream(destino);
+      out.on("error", reject);
+      res.on("data", (chunk) => {
+        leido += chunk.length;
+        out.write(chunk);
+        if (total) onPct(Math.round((leido / total) * 100));
+      });
+      res.on("end", () => out.end(() => resolve()));
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
 
 // Proporcion fija del LIENZO (el contenido web, sin marco de Windows): la UI
 // escala con el ancho (html { font-size } en vw), asi que la altura justa del
@@ -113,6 +145,18 @@ if (!app.requestSingleInstanceLock()) {
       const m = encuadre(display);
       win.setContentSize(m.width, m.height);
       win.setPosition(m.x, m.y, true);
+    });
+
+    // Actualizacion sin tocar exes: baja el instalador NSIS y lo corre en
+    // silencio (/S); --force-run relanza la app ya actualizada. La portable
+    // no puede reemplazarse a si misma: la UI ofrece el enlace.
+    ipcMain.handle("grief:actualizar", async () => {
+      if (process.env.PORTABLE_EXECUTABLE_DIR) return { portable: true };
+      const destino = join(app.getPath("temp"), "GRIEF-Setup.exe");
+      await descargar(URL_SETUP, destino, (pct) => win.webContents.send("grief:progreso", pct));
+      spawn(destino, ["/S", "--force-run"], { detached: true, stdio: "ignore" }).unref();
+      setTimeout(() => app.quit(), 400); // deja salir la respuesta IPC antes de cerrar
+      return { ok: true };
     });
   });
 

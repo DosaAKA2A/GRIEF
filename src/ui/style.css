@@ -358,6 +358,21 @@ body::before {
 
 .equipo ul { list-style: none; display: grid; gap: 0.6rem; }
 
+/* FFA (deathmatch): sin equipos, una sola seccion a lo ancho con la lista en
+   dos columnas y filas compactas: los 12 entran sin scroll. */
+.equipos.ffa, .equipos.ffa.solo-aliado { grid-template-columns: 1fr; justify-content: stretch; }
+.equipos.ffa .equipo ul { grid-template-columns: 1fr 1fr; gap: 0.5rem 1.75rem; }
+.equipos.ffa .jugador { min-height: 3.2rem; }
+.equipos.ffa .retrato { flex-basis: 3.2rem; }
+.equipos.ffa .retrato-img { width: 3.2rem; height: 3.2rem; }
+.equipos.ffa .insignia { flex-basis: 2.9rem; }
+.equipos.ffa .insignia-img { width: 2.35rem; height: 2.35rem; }
+.equipos.ffa .cuerpo { padding-top: 0.25rem; padding-bottom: 0.3rem; }
+/* Los bloques de stats mandan en la altura de la fila: tambien se compactan */
+.equipos.ffa .stat { padding: 0.2rem 0.3rem; }
+.equipos.ffa .stat b { font-size: 1.15rem; }
+.equipos.ffa .stat .sub { margin-top: 0.05rem; }
+
 /* ---- Banda de contexto: mapa+servidor (Valorant) o bando (LoL/Dota) ---- */
 .banda {
   grid-column: 1 / -1;

@@ -199,7 +199,9 @@ function pintar(estado) {
     banda.style.backgroundImage =
       `linear-gradient(90deg, rgba(15,25,35,0.95) 18%, rgba(15,25,35,0.35) 60%, rgba(15,25,35,0.75)), url("valorant/mapas/${estado.mapa.slug}.png")`;
     $("banda-titulo").textContent = estado.mapa.nombre ?? "";
-    $("banda-sub").textContent = estado.servidor ? `Servidor · ${estado.servidor}` : "";
+    $("banda-sub").textContent = [estado.modo, estado.servidor ? `Servidor ${estado.servidor}` : null]
+      .filter(Boolean)
+      .join(" · ");
   } else if (estado.game === "lol" && estado.lado) {
     banda.className = "banda lado-" + estado.lado;
     $("banda-titulo").textContent = estado.lado === "azul" ? "Lado azul" : "Lado rojo";
@@ -208,17 +210,23 @@ function pintar(estado) {
     banda.hidden = true;
   }
 
+  // FFA (deathmatch y similares): mas de dos "equipos" distintos. Todos en
+  // una sola lista a dos columnas para que entren sin scroll; tu fila primero.
+  const equiposDistintos = new Set(estado.rows.map((r) => r.team)).size;
+  const ffa = equiposDistintos > 2;
+  $("equipos").classList.toggle("ffa", ffa);
+
   // Tu equipo: el que contiene tu fila; sin ella, el equipo de la primera.
   const miFila = estado.rows.find((r) => r.me);
   const miEquipo = miFila ? miFila.team : estado.rows[0].team;
   let aliados = estado.rows.filter((r) => r.team === miEquipo);
   let rivales = estado.rows.filter((r) => r.team !== miEquipo);
-  // Sin equipos distinguibles: una sola lista.
-  if (!aliados.length || miEquipo === "-") {
-    aliados = estado.rows;
+  // Sin equipos distinguibles o FFA: una sola lista.
+  if (ffa || !aliados.length || miEquipo === "-") {
+    aliados = miFila ? [miFila, ...estado.rows.filter((r) => !r.me)] : estado.rows;
     rivales = [];
   }
-  $("titulo-aliado").textContent = "Tu equipo";
+  $("titulo-aliado").textContent = ffa ? "Jugadores" : "Tu equipo";
   $("titulo-rival").textContent = "Rival";
 
   $("lista-aliado").replaceChildren(...aliados.map((r) => filaJugador(r, estado.game)));
@@ -322,22 +330,72 @@ $("modal").addEventListener("click", (ev) => {
   if (ev.target === $("modal")) $("modal").hidden = true;
 });
 
-// Actualizar app: chequeo bajo demanda con resultado visible en el menu.
+// ---- Actualizacion integrada ----
+// Dentro de la app instalada, "actualizar" descarga el instalador silencioso
+// y la app se reinicia sola con la version nueva: nunca hay que tocar un exe.
+// En el navegador o en la version portable se cae al enlace de descarga.
+let instalando = false;
+
+function avisoActualizacion(texto) {
+  const estado = $("menu-estado");
+  estado.hidden = false;
+  estado.replaceChildren(texto);
+  const boton = $("actualizar");
+  if (!boton.hidden) boton.textContent = texto;
+}
+
+function enlaceDescarga(url, version) {
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.target = "_blank";
+  enlace.rel = "noopener";
+  enlace.textContent = version ? `Descargar v${version}` : "Descargar";
+  return enlace;
+}
+
+async function instalarActualizacion(v) {
+  if (instalando) return;
+  instalando = true;
+  avisoActualizacion("Descargando actualizacion...");
+  try {
+    const res = await window.grief.actualizar();
+    if (res?.portable) {
+      const url = v?.url ?? $("actualizar").href ?? "https://github.com/DosaAKA2A/GRIEF/releases/latest";
+      $("menu-estado").hidden = false;
+      $("menu-estado").replaceChildren("La version portable no se actualiza sola. ", enlaceDescarga(url, v?.remota));
+      instalando = false;
+      return;
+    }
+    avisoActualizacion("Instalando... la app se reinicia sola.");
+  } catch {
+    avisoActualizacion("No se pudo descargar la actualizacion.");
+    instalando = false;
+  }
+}
+
+window.grief?.onProgreso?.((pct) => avisoActualizacion(`Descargando actualizacion... ${pct}%`));
+
+// El boton de la barra: instala dentro de la app; en navegador es un enlace.
+$("actualizar").addEventListener("click", (ev) => {
+  if (!window.grief?.actualizar) return;
+  ev.preventDefault();
+  instalarActualizacion(null);
+});
+
+// Actualizar app desde el menu: chequeo bajo demanda + instalacion integrada.
 $("menu-actualizar").addEventListener("click", async () => {
   const estado = $("menu-estado");
   estado.hidden = false;
+  if (instalando) return;
   estado.replaceChildren("Buscando actualizacion...");
   try {
     const v = await estadoVersion();
-    if (v.nueva) {
-      const enlace = document.createElement("a");
-      enlace.href = v.url;
-      enlace.target = "_blank";
-      enlace.rel = "noopener";
-      enlace.textContent = `Descargar v${v.remota}`;
-      estado.replaceChildren("Hay version nueva. ", enlace);
-    } else {
+    if (!v.nueva) {
       estado.replaceChildren(`Estas en la ultima version (v${v.local}).`);
+    } else if (window.grief?.actualizar) {
+      instalarActualizacion(v);
+    } else {
+      estado.replaceChildren("Hay version nueva. ", enlaceDescarga(v.url, v.remota));
     }
   } catch {
     estado.replaceChildren("No se pudo comprobar (sin conexion).");

@@ -24,6 +24,20 @@ const PHASE_LABELS = {
   pregame: "SELECCION DE AGENTES (solo tu equipo)",
 };
 
+// Cola -> nombre legible del modo. Sin cola conocida no se muestra nada
+// (mejor ausente que un nombre inventado en customs o modos nuevos).
+const MODOS = {
+  competitive: "Competitivo",
+  unrated: "No competitivo",
+  deathmatch: "Deathmatch",
+  hurm: "Team Deathmatch",
+  ggteam: "Escalada",
+  spikerush: "Spike Rush",
+  swiftplay: "Swiftplay",
+  onefa: "Replicacion",
+  premier: "Premier",
+};
+
 // Senales de cheater/smurf/booster. Son heuristicas con falsos positivos
 // (rachas, ex-altos volviendo de pausa): se presentan como "posible", nunca
 // como veredicto. Requieren minimo 5 partidas para no disparar con ruido.
@@ -223,14 +237,15 @@ export class Tracker extends EventEmitter {
     if (sig === this.#sig) return;
     const [rows, mapa] = await Promise.all([this.#enrich(match.players), mapInfo(match.mapId)]);
     const servidor = podCiudad(match.pod);
+    const modo = MODOS[match.queue] ?? null;
     this.#sig = sig;
-    this.emit("match", { phase: match.phase, label: PHASE_LABELS[match.phase], rows, mapa, servidor });
+    this.emit("match", { phase: match.phase, label: PHASE_LABELS[match.phase], rows, mapa, servidor, modo });
     // El KDA de las ultimas 10 competitivas es lento (match-details pesa);
     // se rellena en segundo plano y se re-emite. Con cache, casi siempre vuela.
-    this.#fillKda(rows, sig, match.phase, mapa, servidor);
+    this.#fillKda(rows, sig, match.phase, mapa, servidor, modo);
   }
 
-  async #fillKda(rows, sig, phase, mapa, servidor) {
+  async #fillKda(rows, sig, phase, mapa, servidor, modo) {
     const api = this.api;
     const [kdas, comps] = await Promise.all([
       Promise.all(rows.map((r) => api.getKda(r.puuid).catch(() => null))),
@@ -242,19 +257,26 @@ export class Tracker extends EventEmitter {
       r.comp = comps[i];
       r.alertas = alertas(r);
     });
-    this.emit("match", { phase, label: PHASE_LABELS[phase], rows, mapa, servidor });
+    this.emit("match", { phase, label: PHASE_LABELS[phase], rows, mapa, servidor, modo });
   }
 
   async #fetchMatch() {
     const core = await this.api.getCoreGame();
-    if (core) return { phase: "core", players: core.Players ?? [], mapId: core.MapID, pod: core.GamePodID };
+    if (core)
+      return {
+        phase: "core",
+        players: core.Players ?? [],
+        mapId: core.MapID,
+        pod: core.GamePodID,
+        queue: core.MatchmakingData?.QueueID ?? null,
+      };
     const pre = await this.api.getPreGame();
     if (pre) {
       const players = (pre.AllyTeam?.Players ?? []).map((p) => ({
         ...p,
         TeamID: pre.AllyTeam?.TeamID,
       }));
-      return { phase: "pregame", players, mapId: pre.MapID, pod: pre.GamePodID };
+      return { phase: "pregame", players, mapId: pre.MapID, pod: pre.GamePodID, queue: pre.QueueID ?? null };
     }
     return null;
   }
