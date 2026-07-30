@@ -22,7 +22,7 @@
 
   <nav id="menu-panel" class="menu-panel" hidden aria-label="Menu de la app">
     <button id="menu-acerca" class="menu-item">Acerca de</button>
-    <button id="menu-terminos" class="menu-item">Terminos y condiciones</button>
+    <button id="menu-terminos" class="menu-item">Términos y condiciones</button>
     <button id="menu-actualizar" class="menu-item">Actualizar app</button>
     <span id="menu-estado" class="menu-estado" hidden></span>
   </nav>
@@ -39,20 +39,20 @@
 
   <template id="tpl-acerca">
     <p class="modal-destacado">GRIEF <span id="acerca-version"></span></p>
-    <p>Match tracker de Valorant y League of Legends. Lee la API local del cliente de Riot en tu propio equipo: no usa overlays, no inyecta nada en el juego y no envia tus datos a ningun servidor.</p>
+    <p>Tracker de partidas de Valorant y League of Legends. Lee los datos que el cliente de Riot ya tiene en tu computadora: no se mete en el juego y no envía nada a internet.</p>
     <p>Un proyecto de Estudio de Iris.</p>
     <p><a href="https://grief.es" target="_blank" rel="noopener">grief.es</a> &middot; <a href="https://github.com/DosaAKA2A/GRIEF" target="_blank" rel="noopener">GitHub</a></p>
-    <p class="modal-nota">GRIEF no esta afiliado a Riot Games ni cuenta con su respaldo. Riot Games, Valorant y League of Legends son marcas de Riot Games, Inc.</p>
+    <p class="modal-nota">GRIEF no está afiliado a Riot Games ni cuenta con su respaldo. Riot Games, Valorant y League of Legends son marcas de Riot Games, Inc.</p>
   </template>
 
   <template id="tpl-terminos">
-    <p>GRIEF se ofrece tal cual, sin garantias de ningun tipo. Al usar la app aceptas estas condiciones:</p>
+    <p>Al usar GRIEF aceptas estas condiciones:</p>
     <ul>
-      <li><b>Datos.</b> GRIEF lee la API local del cliente de Riot y las APIs de partida asociadas a tu sesion. Todo se procesa en tu equipo; no recopilamos, almacenamos ni compartimos datos personales.</li>
-      <li><b>Senales.</b> Las alertas de posible cheater, smurf o booster son heuristicas con margen de error. Son orientativas y no constituyen acusaciones.</li>
-      <li><b>Riot Games.</b> GRIEF no interfiere con el juego (sin overlay, sin inyeccion, sin automatizacion). Aun asi, el uso de herramientas de terceros queda bajo tu responsabilidad conforme a los terminos de servicio de Riot.</li>
-      <li><b>Responsabilidad.</b> Estudio de Iris no se hace responsable de danos derivados del uso de la app ni de decisiones tomadas a partir de la informacion mostrada.</li>
-      <li><b>Actualizaciones.</b> Las versiones nuevas se publican en GitHub. La app solo consulta la version publicada; descargar e instalar es siempre decision tuya.</li>
+      <li><b>Tus datos.</b> GRIEF lee la información que el cliente de Riot expone en tu computadora. Todo se procesa ahí mismo: no guardamos ni enviamos tus datos a ningún lado.</li>
+      <li><b>Señales.</b> Las alertas de posible cheater, smurf o booster son estimaciones y pueden equivocarse. Tómalas como una pista, no como una certeza.</li>
+      <li><b>Riot Games.</b> GRIEF no modifica el juego ni interactúa con él. Aun así, usar herramientas externas es siempre responsabilidad de cada jugador.</li>
+      <li><b>Responsabilidad.</b> Estudio de Iris no se hace responsable de problemas o decisiones derivados de usar la app.</li>
+      <li><b>Actualizaciones.</b> Las versiones nuevas se publican en GitHub. La app te avisa cuando hay una; instalarla es decisión tuya.</li>
     </ul>
   </template>
 
@@ -98,7 +98,7 @@
       <div id="perfil-tiles" class="perfil-tiles"></div>
 
       <div class="perfil-partidas">
-        <h2>Ultimas competitivas</h2>
+        <h2>Últimas competitivas</h2>
         <ul id="perfil-lista"></ul>
       </div>
     </section>

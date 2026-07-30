@@ -281,7 +281,7 @@ export class LolTracker extends EventEmitter {
     this.#status("LoL: seleccion de campeones.");
     this.#emitIfChanged(
       "lol-champselect",
-      "SELECCION DE CAMPEONES (solo tu equipo)",
+      "SELECCIÓN DE CAMPEONES (solo tu equipo)",
       rows,
       rows.map((r) => `${r.puuid}:${r.agent}`).join(","),
       { lado }

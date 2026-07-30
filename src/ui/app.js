@@ -3,9 +3,9 @@
 // y no deben interpretarse nunca como HTML.
 
 const FASES = {
-  pregame: "Seleccion de agentes",
+  pregame: "Selección de agentes",
   core: "En partida",
-  "lol-champselect": "Seleccion de campeones",
+  "lol-champselect": "Selección de campeones",
   "lol-game": "En partida",
 };
 
@@ -181,7 +181,7 @@ function filaJugador(r, juego) {
       statAdr.append(b, el("small", null, "ADR"));
       const wr = r.kda.winRate != null ? Math.round(r.kda.winRate * 100) : null;
       if (wr != null) statAdr.append(el("span", "sub" + (wr >= 60 ? " alto" : ""), `WR ${wr}%`));
-      if (r.kda.acs != null) statAdr.dataset.tip = `ACS ${Math.round(r.kda.acs)} · ${Math.round(r.kda.adr)} de dano medio por ronda`;
+      if (r.kda.acs != null) statAdr.dataset.tip = `ACS ${Math.round(r.kda.acs)} · Daño por ronda: ${Math.round(r.kda.adr)}`;
     } else {
       statAdr.append(el("b", "vacio", "—"), el("small", null, "ADR"));
     }
@@ -260,7 +260,7 @@ function pintarPerfil(p) {
   const partes = [];
   if (p.level != null) partes.push(`Nivel ${p.level}`);
   if (p.seasons) partes.push(`${p.seasons} temporada${p.seasons === 1 ? "" : "s"}`);
-  if (p.totalGames) partes.push(`${p.totalGames} competitivas en total`);
+  if (p.totalGames) partes.push(`${p.totalGames} partidas en total`);
   $("perfil-sub").textContent = partes.join(" · ");
 
   const peakIcono = p.peak >= 3 ? `rangos/${p.peak}.png` : null;
@@ -280,13 +280,13 @@ function pintarPerfil(p) {
     tiles.push(
       tilePerfil(k.kda.toFixed(2), "KDA", `${k.kills}/${k.deaths}/${k.assists}`, k.kda >= 1.3 ? "bien" : k.kda <= 0.8 ? "mal" : ""),
       tilePerfil(k.hsRate != null ? Math.round(k.hsRate * 100) + "%" : null, "HS", "headshots", k.hsRate >= 0.3 ? "alto" : ""),
-      tilePerfil(k.adr != null ? Math.round(k.adr) : null, "ADR", "dano por ronda"),
-      tilePerfil(k.acs != null ? Math.round(k.acs) : null, "ACS", "combat score"),
-      tilePerfil(k.winRate != null ? Math.round(k.winRate * 100) + "%" : null, "WR", `ultimas ${k.games}`, k.winRate >= 0.6 ? "bien" : k.winRate <= 0.4 ? "mal" : "")
+      tilePerfil(k.adr != null ? Math.round(k.adr) : null, "ADR", "daño por ronda"),
+      tilePerfil(k.acs != null ? Math.round(k.acs) : null, "ACS", "puntaje de combate"),
+      tilePerfil(k.winRate != null ? Math.round(k.winRate * 100) + "%" : null, "WR", `últimas ${k.games}`, k.winRate >= 0.6 ? "bien" : k.winRate <= 0.4 ? "mal" : "")
     );
   }
   if (p.comp) {
-    tiles.push(tilePerfil(`${p.comp.wins}W-${p.comp.losses}L`, "Racha", p.comp.avgRrWin != null ? `+${Math.round(p.comp.avgRrWin)} RR por victoria` : null));
+    tiles.push(tilePerfil(`${p.comp.wins}W-${p.comp.losses}L`, "Balance", p.comp.avgRrWin != null ? `+${Math.round(p.comp.avgRrWin)} RR por victoria` : null));
   }
   $("perfil-tiles").replaceChildren(...tiles);
 
@@ -457,7 +457,7 @@ if (window.grief?.capturar) {
   $("pie-captura").addEventListener("click", async () => {
     const seccion = !$("equipos").hidden ? $("equipos") : !$("perfil").hidden ? $("perfil") : null;
     if (!seccion) {
-      avisoPie("No hay nada que capturar todavia.");
+      avisoPie("No hay nada que capturar todavía.");
       return;
     }
     const r = seccion.getBoundingClientRect();
@@ -470,7 +470,7 @@ if (window.grief?.capturar) {
     };
     try {
       await window.grief.capturar(rect);
-      avisoPie("Captura copiada. Pegala donde quieras.");
+      avisoPie("Captura copiada. Pégala donde quieras.");
     } catch {
       avisoPie("No se pudo copiar la captura.");
     }
@@ -492,7 +492,7 @@ $("menu-acerca").addEventListener("click", async () => {
     if (span) span.textContent = `v${version}`;
   } catch {}
 });
-$("menu-terminos").addEventListener("click", () => abrirModal("Terminos y condiciones", "tpl-terminos"));
+$("menu-terminos").addEventListener("click", () => abrirModal("Términos y condiciones", "tpl-terminos"));
 $("modal-cerrar").addEventListener("click", () => { $("modal").hidden = true; });
 $("modal").addEventListener("click", (ev) => {
   if (ev.target === $("modal")) $("modal").hidden = true;
@@ -524,24 +524,24 @@ function enlaceDescarga(url, version) {
 async function instalarActualizacion(v) {
   if (instalando) return;
   instalando = true;
-  avisoActualizacion("Descargando actualizacion...");
+  avisoActualizacion("Descargando actualización...");
   try {
     const res = await window.grief.actualizar();
     if (res?.portable) {
       const url = v?.url ?? $("actualizar").href ?? "https://github.com/DosaAKA2A/GRIEF/releases/latest";
       $("menu-estado").hidden = false;
-      $("menu-estado").replaceChildren("La version portable no se actualiza sola. ", enlaceDescarga(url, v?.remota));
+      $("menu-estado").replaceChildren("La versión portable no se actualiza sola. ", enlaceDescarga(url, v?.remota));
       instalando = false;
       return;
     }
     avisoActualizacion("Instalando... la app se reinicia sola.");
   } catch {
-    avisoActualizacion("No se pudo descargar la actualizacion.");
+    avisoActualizacion("No se pudo descargar la actualización.");
     instalando = false;
   }
 }
 
-window.grief?.onProgreso?.((pct) => avisoActualizacion(`Descargando actualizacion... ${pct}%`));
+window.grief?.onProgreso?.((pct) => avisoActualizacion(`Descargando actualización... ${pct}%`));
 
 // El boton de la barra: instala dentro de la app; en navegador es un enlace.
 $("actualizar").addEventListener("click", (ev) => {
@@ -555,18 +555,18 @@ $("menu-actualizar").addEventListener("click", async () => {
   const estado = $("menu-estado");
   estado.hidden = false;
   if (instalando) return;
-  estado.replaceChildren("Buscando actualizacion...");
+  estado.replaceChildren("Buscando actualización...");
   try {
     const v = await estadoVersion();
     if (!v.nueva) {
-      estado.replaceChildren(`Estas en la ultima version (v${v.local}).`);
+      estado.replaceChildren(`Estás en la última versión (v${v.local}).`);
     } else if (window.grief?.actualizar) {
       instalarActualizacion(v);
     } else {
-      estado.replaceChildren("Hay version nueva. ", enlaceDescarga(v.url, v.remota));
+      estado.replaceChildren("Hay versión nueva. ", enlaceDescarga(v.url, v.remota));
     }
   } catch {
-    estado.replaceChildren("No se pudo comprobar (sin conexion).");
+    estado.replaceChildren("No se pudo comprobar (sin conexión).");
   }
 });
 
@@ -575,7 +575,7 @@ function conectar() {
   fuente.onmessage = (ev) => pintar(JSON.parse(ev.data));
   // EventSource reintenta solo la reconexion.
   fuente.onerror = () => {
-    $("estado").textContent = "Sin conexion con el tracker. Reintentando...";
+    $("estado").textContent = "Sin conexión con el tracker. Reintentando...";
   };
 }
 

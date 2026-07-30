@@ -21,20 +21,20 @@ function podCiudad(pod) {
 
 const PHASE_LABELS = {
   core: "EN PARTIDA",
-  pregame: "SELECCION DE AGENTES (solo tu equipo)",
+  pregame: "SELECCIÓN DE AGENTES (solo tu equipo)",
 };
 
 // Cola -> nombre legible del modo. Sin cola conocida no se muestra nada
 // (mejor ausente que un nombre inventado en customs o modos nuevos).
 const MODOS = {
   competitive: "Competitivo",
-  unrated: "No competitivo",
+  unrated: "Normal",
   deathmatch: "Deathmatch",
   hurm: "Team Deathmatch",
   ggteam: "Escalada",
   spikerush: "Spike Rush",
   swiftplay: "Swiftplay",
-  onefa: "Replicacion",
+  onefa: "Replicación",
   premier: "Premier",
 };
 
@@ -54,7 +54,7 @@ function alertas(r) {
     out.push({
       tipo: "cheater",
       texto: "Posible Cheater",
-      detalle: `${hs}% de headshots con KDA ${kda.toFixed(2)} en sus ultimas ${games} competitivas`,
+      detalle: `${hs}% de headshots con KDA ${kda.toFixed(2)} en sus últimas ${games} partidas`,
     });
   }
 
@@ -87,7 +87,7 @@ function alertas(r) {
     const total = r.comp.wins + r.comp.losses;
     if (total >= 6 && r.comp.wins / total >= 0.7) {
       score += 2;
-      razones.push(`racha ${r.comp.wins}W-${r.comp.losses}L`);
+      razones.push(`balance ${r.comp.wins}W-${r.comp.losses}L`);
     }
     if (r.comp.avgRrWin != null) {
       if (r.comp.avgRrWin >= 24) {
@@ -101,7 +101,7 @@ function alertas(r) {
   }
   if (r.seasonsPlayed != null && r.seasonsPlayed <= 2 && r.totalGames != null && r.totalGames <= 60) {
     score += 2;
-    razones.push(`solo ${r.seasonsPlayed} temporada(s) y ${r.totalGames} competitivas en total`);
+    razones.push(`solo ${r.seasonsPlayed} temporada${r.seasonsPlayed === 1 ? "" : "s"} y ${r.totalGames} partidas en total`);
   }
   if (r.peak - r.tier >= 6 && kda >= 1.5) {
     score += 2;
