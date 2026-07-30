@@ -300,10 +300,13 @@ function pintar(estado) {
     banda.hidden = true;
   }
 
-  // FFA (deathmatch y similares): mas de dos "equipos" distintos. Todos en
-  // una sola lista a dos columnas para que entren sin scroll; tu fila primero.
+  // FFA (deathmatch y similares). Riot no es consistente con el TeamID en
+  // estos modos (a veces uno por jugador, a veces el mismo para todos), asi
+  // que la regla es por forma: mas de 6 filas sin ser un 2-equipos clasico,
+  // o modo Deathmatch explicito. Todos en una lista a dos columnas
+  // compactas para que entren sin scroll; tu fila primero.
   const equiposDistintos = new Set(estado.rows.map((r) => r.team)).size;
-  const ffa = equiposDistintos > 2;
+  const ffa = estado.rows.length > 6 && (equiposDistintos !== 2 || estado.modo === "Deathmatch");
   $("equipos").classList.toggle("ffa", ffa);
 
   // Tu equipo: el que contiene tu fila; sin ella, el equipo de la primera.
