@@ -1,6 +1,6 @@
 {
   "name": "grief",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "GRIEF: tracker ligero de Valorant via API local del cliente de Riot",
   "type": "module",
   "main": "electron/main.js",

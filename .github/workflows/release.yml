@@ -1,0 +1,56 @@
+# Release automatica: en cada push a master, si la version de package.json
+# no tiene release publicada, compila los instaladores y la publica. El
+# landing (grief.es) apunta a releases/latest, asi que sirve siempre la
+# ultima sin tocar nada.
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version y release existente
+        id: ver
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          "version=$v" >> $env:GITHUB_OUTPUT
+          gh release view "v$v" 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) { "exists=true" >> $env:GITHUB_OUTPUT } else { "exists=false" >> $env:GITHUB_OUTPUT }
+          exit 0
+
+      - uses: actions/setup-node@v4
+        if: steps.ver.outputs.exists == 'false'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        if: steps.ver.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Compilar instaladores
+        if: steps.ver.outputs.exists == 'false'
+        run: npm run dist
+
+      - name: Publicar release
+        if: steps.ver.outputs.exists == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notas = git log -1 --pretty=%B
+          gh release create "v${{ steps.ver.outputs.version }}" `
+            "dist/GRIEF-Setup.exe" "dist/GRIEF-Portable.exe" `
+            --title "GRIEF ${{ steps.ver.outputs.version }}" `
+            --notes "$notas"

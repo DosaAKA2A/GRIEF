@@ -294,14 +294,11 @@ document.addEventListener("keydown", (ev) => {
   $("modal").hidden = true;
 });
 
-// Encuadre perfecto: solo existe dentro de la app de escritorio (preload).
+// Encuadre perfecto: barra inferior, solo dentro de la app de escritorio
+// (preload). En el navegador la barra ni aparece.
 if (window.grief?.encuadrar) {
-  const b = $("menu-encuadre");
-  b.hidden = false;
-  b.addEventListener("click", () => {
-    window.grief.encuadrar();
-    cerrarMenu();
-  });
+  $("pie").hidden = false;
+  $("pie-encuadre").addEventListener("click", () => window.grief.encuadrar());
 }
 
 function abrirModal(titulo, tplId) {

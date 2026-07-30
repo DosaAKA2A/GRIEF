@@ -619,11 +619,52 @@ body::before {
   transition: width 0.4s ease;
 }
 
+/* ---- Barra inferior: acciones de ventana (solo app de escritorio) ---- */
+.pie {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0.45rem 1.5rem;
+  border-top: 1px solid var(--linea);
+}
+.pie-boton {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  background: none;
+  border: 1px solid var(--linea);
+  color: var(--apagado);
+  cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  transition: color 0.15s, border-color 0.15s;
+}
+.pie-boton svg { position: relative; z-index: 1; }
+/* Barrido de hover en los tonos de GRIEF: una banda de luz cruza el boton */
+.pie-boton::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 15%, rgba(255, 46, 77, 0.45) 40%, rgba(255, 70, 85, 0.55) 50%, rgba(255, 154, 61, 0.45) 60%, transparent 85%);
+  transform: translateX(-120%);
+}
+.pie-boton:hover {
+  color: var(--hueso);
+  border-color: rgba(255, 70, 85, 0.6);
+}
+.pie-boton:hover::before { animation: barrido-pie 0.55s ease; }
+@keyframes barrido-pie {
+  to { transform: translateX(120%); }
+}
+
 @media (max-width: 760px) {
   .equipos { grid-template-columns: 1fr; }
   .estado { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fase-punto, .vacio-radar .aguja, .jugador { animation: none; }
+  .fase-punto, .vacio-radar .aguja, .jugador, .pie-boton::before { animation: none; }
 }
