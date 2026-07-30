@@ -39,9 +39,11 @@ jobs:
         if: steps.ver.outputs.exists == 'false'
         run: npm ci
 
+      # --publish never: electron-builder no publica (lo hace gh en el paso
+      # siguiente); sin esto, en CI intenta subir la release el mismo y falla.
       - name: Compilar instaladores
         if: steps.ver.outputs.exists == 'false'
-        run: npm run dist
+        run: npm run dist -- --publish never
 
       - name: Publicar release
         if: steps.ver.outputs.exists == 'false'
