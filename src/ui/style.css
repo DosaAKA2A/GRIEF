@@ -241,21 +241,25 @@ body::before {
   color: var(--apagado);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
 }
-/* Bandos: gradiente con el color del lado que te toco */
+/* Bandos: arte del lado que te toco, degradado hacia el panel */
 .banda.lado-azul {
-  background-image: linear-gradient(90deg, rgba(63, 183, 201, 0.3), rgba(15, 25, 35, 0.15) 55%, rgba(15, 25, 35, 0.4));
+  background-image: linear-gradient(90deg, rgba(15, 25, 35, 0.92) 18%, rgba(15, 25, 35, 0.3) 60%, rgba(15, 25, 35, 0.7)),
+    url("fondos/lol-azul.jpg");
   border-color: rgba(63, 183, 201, 0.45);
 }
 .banda.lado-rojo {
-  background-image: linear-gradient(90deg, rgba(255, 70, 85, 0.28), rgba(15, 25, 35, 0.15) 55%, rgba(15, 25, 35, 0.4));
+  background-image: linear-gradient(90deg, rgba(15, 25, 35, 0.92) 18%, rgba(15, 25, 35, 0.3) 60%, rgba(15, 25, 35, 0.7)),
+    url("fondos/lol-rojo.jpg");
   border-color: rgba(255, 70, 85, 0.45);
 }
 .banda.lado-radiant {
-  background-image: linear-gradient(90deg, rgba(70, 176, 131, 0.32), rgba(15, 25, 35, 0.15) 55%, rgba(15, 25, 35, 0.4));
+  background-image: linear-gradient(90deg, rgba(15, 25, 35, 0.92) 18%, rgba(15, 25, 35, 0.3) 60%, rgba(15, 25, 35, 0.7)),
+    url("fondos/dota-radiant.jpg");
   border-color: rgba(70, 176, 131, 0.5);
 }
 .banda.lado-dire {
-  background-image: linear-gradient(90deg, rgba(210, 67, 87, 0.32), rgba(15, 25, 35, 0.15) 55%, rgba(15, 25, 35, 0.4));
+  background-image: linear-gradient(90deg, rgba(15, 25, 35, 0.92) 18%, rgba(15, 25, 35, 0.3) 60%, rgba(15, 25, 35, 0.7)),
+    url("fondos/dota-dire.jpg");
   border-color: rgba(210, 67, 87, 0.5);
 }
 .banda.lado-neutro {
