@@ -281,7 +281,7 @@ function pintarPerfil(p) {
       tilePerfil(k.kda.toFixed(2), "KDA", `${k.kills}/${k.deaths}/${k.assists}`, k.kda >= 1.3 ? "bien" : k.kda <= 0.8 ? "mal" : ""),
       tilePerfil(k.hsRate != null ? Math.round(k.hsRate * 100) + "%" : null, "HS", "headshots", k.hsRate >= 0.3 ? "alto" : ""),
       tilePerfil(k.adr != null ? Math.round(k.adr) : null, "ADR", "daño por ronda"),
-      tilePerfil(k.acs != null ? Math.round(k.acs) : null, "ACS", "puntaje de combate"),
+      tilePerfil(k.acs != null ? Math.round(k.acs) : null, "ACS", "combat score"),
       tilePerfil(k.winRate != null ? Math.round(k.winRate * 100) + "%" : null, "WR", `últimas ${k.games}`, k.winRate >= 0.6 ? "bien" : k.winRate <= 0.4 ? "mal" : "")
     );
   }
