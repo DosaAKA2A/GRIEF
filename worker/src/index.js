@@ -1,127 +1,137 @@
 // grief-tft: calcula las mejores composiciones del parche a partir de partidas
 // reales de Challenger con la API oficial de Riot, y las sirve como JSON para
-// la app. Recalcula una vez al dia (cron) y guarda el resultado en KV, asi que
-// la app nunca espera y la clave de Riot no sale de aqui.
+// la app. Ni copia tier lists ajenas ni pide nada a la app: el dato es propio.
+//
+// Como trabaja: por RONDAS. Cada ronda mira una tanda distinta de jugadores
+// (cursor rotatorio), baja unas pocas partidas nuevas y las suma a lo que ya
+// habia en KV. Asi cada ejecucion se queda muy por debajo del limite de
+// subpeticiones de un Worker y del limite de peticiones de una clave de Riot,
+// y la muestra crece sola. Al cambiar de parche se tira todo y se empieza de
+// cero, que es justo lo que se quiere en una tier list.
 //
 // Rutas:
 //   GET /comps    lista de comps ordenada (lo que consume GRIEF)
-//   GET /estado   cuando se calculo, cuantas partidas entraron y con que parche
-//   GET /refresca recalcula ahora mismo (requiere cabecera X-Clave con ADMIN)
+//   GET /estado   como va la muestra
+//   GET /refresca corre una ronda ahora (cabecera X-Clave con el secreto ADMIN)
 //
-// Secretos:  RIOT_KEY (clave de developer.riotgames.com), ADMIN (opcional)
+// Secretos: RIOT_KEY (developer.riotgames.com), ADMIN (para /refresca)
+// KV: set:v1 (mapa compacto del set, lo sube tools/set.mjs), datos:v1 (muestra)
 
-const CLAVE_KV = "comps:v1";
-const CDRAGON = "https://raw.communitydragon.org/latest/cdragon/tft/es_mx.json";
+const K_DATOS = "datos:v1";
+const K_SET = "set:v1";
+const K_ERROR = "error:v1"; // ultimo fallo de ronda, para verlo sin mirar logs
+const TOPE_PARTIDAS = 1200; // muestra maxima que se guarda por parche
 
 const cabeceras = {
   "Content-Type": "application/json; charset=utf-8",
   "Access-Control-Allow-Origin": "*",
-  "Cache-Control": "public, max-age=1800",
+  "Cache-Control": "public, max-age=900",
 };
-
 const json = (cuerpo, status = 200) => new Response(JSON.stringify(cuerpo), { status, headers: cabeceras });
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/comps" || url.pathname === "/") {
-      const guardado = await env.COMPS.get(CLAVE_KV, "json");
-      if (guardado) return json(guardado);
-      if (!env.RIOT_KEY) return json({ error: "falta la clave de Riot", comps: [] }, 503);
-      const nuevo = await calcular(env);
-      ctx.waitUntil(env.COMPS.put(CLAVE_KV, JSON.stringify(nuevo)));
-      return json(nuevo);
+      const [datos, set, fallo] = await Promise.all([
+        env.COMPS.get(K_DATOS, "json"),
+        env.COMPS.get(K_SET, "json"),
+        env.COMPS.get(K_ERROR, "json"),
+      ]);
+      if (!datos?.partidas) {
+        return json({
+          comps: [],
+          error: !env.RIOT_KEY
+            ? "falta la clave de Riot"
+            : fallo?.mensaje?.includes("401")
+              ? "la clave de Riot no vale (caducó o es de otra cuenta)"
+              : fallo?.mensaje
+                ? `no se pudo calcular: ${fallo.mensaje}`
+                : "todavía no hay muestra suficiente; vuelve en un rato",
+        }, 503);
+      }
+      return json(salida(datos, set));
     }
     if (url.pathname === "/estado") {
-      const guardado = await env.COMPS.get(CLAVE_KV, "json");
+      const [datos, set, fallo] = await Promise.all([
+        env.COMPS.get(K_DATOS, "json"),
+        env.COMPS.get(K_SET, "json"),
+        env.COMPS.get(K_ERROR, "json"),
+      ]);
       return json({
+        ultimoError: fallo ?? null,
         hayClave: !!env.RIOT_KEY,
-        calculado: guardado?.calculado ?? null,
-        partidas: guardado?.partidas ?? 0,
-        parche: guardado?.parche ?? null,
-        comps: guardado?.comps?.length ?? 0,
+        haySet: !!set,
+        set: set?.numero ?? null,
+        parche: datos?.parche ?? null,
+        partidas: datos?.partidas ?? 0,
+        comps: Object.keys(datos?.comps ?? {}).length,
+        rondas: datos?.rondas ?? 0,
+        ultima: datos?.calculado ?? null,
       });
     }
     if (url.pathname === "/refresca") {
       if (!env.ADMIN || request.headers.get("X-Clave") !== env.ADMIN) return json({ error: "no autorizado" }, 401);
-      const nuevo = await calcular(env);
-      await env.COMPS.put(CLAVE_KV, JSON.stringify(nuevo));
-      return json(nuevo);
+      try {
+        const resumen = await ronda(env);
+        await env.COMPS.delete(K_ERROR);
+        return json(resumen);
+      } catch (err) {
+        const mensaje = String(err.message ?? err);
+        await env.COMPS.put(K_ERROR, JSON.stringify({ at: new Date().toISOString(), mensaje }));
+        return json({ error: mensaje }, 500);
+      }
     }
     return json({ error: "no existe" }, 404);
   },
 
   async scheduled(evento, env, ctx) {
     if (!env.RIOT_KEY) return;
-    ctx.waitUntil(calcular(env).then((r) => env.COMPS.put(CLAVE_KV, JSON.stringify(r))));
+    ctx.waitUntil(
+      ronda(env)
+        .then(() => env.COMPS.delete(K_ERROR))
+        .catch((err) =>
+          env.COMPS.put(K_ERROR, JSON.stringify({ at: new Date().toISOString(), mensaje: String(err.message ?? err) }))
+        )
+    );
   },
 };
 
 // ---- Riot API ----
 
 async function riot(env, host, ruta) {
-  const res = await fetch(`https://${host}.api.riotgames.com${ruta}`, {
-    headers: { "X-Riot-Token": env.RIOT_KEY },
-  });
-  if (res.status === 429) {
-    // Limite de peticiones: esperamos lo que diga Riot y reintentamos una vez.
-    const espera = Number(res.headers.get("Retry-After") ?? 2);
-    await new Promise((r) => setTimeout(r, Math.min(10, espera) * 1000));
-    return riot(env, host, ruta);
-  }
-  if (!res.ok) throw new Error(`Riot ${res.status} en ${ruta}`);
+  const res = await fetch(`https://${host}.api.riotgames.com${ruta}`, { headers: { "X-Riot-Token": env.RIOT_KEY } });
+  if (!res.ok) throw new Error(`Riot ${res.status} en ${ruta.split("?")[0]}`);
   return res.json();
 }
 
-// ---- Datos del set (nombres, coste e iconos de unidades, rasgos y objetos) ----
-
-async function datosDelSet() {
-  const res = await fetch(CDRAGON);
-  if (!res.ok) throw new Error("Community Dragon no responde");
-  const data = await res.json();
-  // El set activo es el de numero mas alto con unidades.
-  const sets = Object.entries(data.sets ?? {})
-    .map(([num, s]) => ({ num: Number(num), ...s }))
-    .filter((s) => (s.champions ?? []).length)
-    .sort((a, b) => b.num - a.num);
-  const set = sets[0] ?? { champions: [], traits: [] };
-  const icono = (ruta) =>
-    ruta
-      ? "https://raw.communitydragon.org/latest/game/" +
-        String(ruta).toLowerCase().replace(/\.(tex|dds)$/, ".png").replace(/^\/+/, "")
-      : null;
-  return {
-    numero: set.num ?? null,
-    unidades: new Map(
-      (set.champions ?? []).map((c) => [
-        c.apiName,
-        { id: c.apiName, nombre: c.name, coste: c.cost ?? 0, icono: icono(c.tileIcon ?? c.squareIcon), rasgos: c.traits ?? [] },
-      ])
-    ),
-    rasgos: new Map((set.traits ?? []).map((t) => [t.apiName, { nombre: t.name, icono: icono(t.icon) }])),
-    objetos: new Map((data.items ?? []).map((i) => [i.apiName ?? i.nameId, { nombre: i.name, icono: icono(i.icon) }])),
-  };
+// "Version 16.15.700.1234 (Aug 01 2026...)" -> "16.15"
+function parcheDe(version) {
+  const m = String(version ?? "").match(/(\d+)\.(\d+)/);
+  return m ? `${m[1]}.${m[2]}` : null;
 }
 
-// ---- Calculo ----
+// ---- Una ronda de muestreo ----
 
-// La comp de un jugador se identifica por sus dos rasgos activos mas fuertes
-// mas su carry (la unidad mas cara con objetos). Es la misma forma de nombrar
-// que usan las tier lists, y sale de datos, no de opiniones.
+const vacio = () => ({ parche: null, partidas: 0, rondas: 0, cursor: 0, vistas: [], comps: {}, calculado: null });
+
+// La comp de un tablero se identifica por sus dos rasgos activos mas fuertes
+// mas su carry (la unidad con mas objetos). Es como se nombran las comps en
+// cualquier tier list, solo que aqui sale de los datos y no de una opinion.
 function claveDeComp(p, set) {
   const activos = (p.traits ?? [])
     .filter((t) => (t.tier_current ?? 0) > 0)
     .sort((a, b) => (b.tier_current ?? 0) - (a.tier_current ?? 0) || (b.num_units ?? 0) - (a.num_units ?? 0))
     .slice(0, 2);
-  const carry = [...(p.units ?? [])]
-    .sort(
-      (a, b) =>
-        (b.itemNames?.length ?? 0) - (a.itemNames?.length ?? 0) ||
-        (b.rarity ?? 0) - (a.rarity ?? 0) ||
-        (b.tier ?? 0) - (a.tier ?? 0)
-    )[0];
-  const nombreRasgo = (t) => set.rasgos.get(t.name)?.nombre ?? String(t.name ?? "").replace(/^TFT\d+_/, "");
-  const nombreUnidad = (u) => set.unidades.get(u?.character_id)?.nombre ?? String(u?.character_id ?? "").replace(/^TFT\d+_/, "");
+  const carry = [...(p.units ?? [])].sort(
+    (a, b) =>
+      (b.itemNames?.length ?? 0) - (a.itemNames?.length ?? 0) ||
+      (b.rarity ?? 0) - (a.rarity ?? 0) ||
+      (b.tier ?? 0) - (a.tier ?? 0)
+  )[0];
+  const limpio = (s) => String(s ?? "").replace(/^TFT\d*_?/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
+  const nombreRasgo = (t) => set.rasgos?.[t.name] ?? limpio(t.name);
+  const nombreUnidad = (u) => set.unidades?.[u?.character_id]?.n ?? limpio(u?.character_id);
   return {
     id: [...activos.map((t) => t.name), carry?.character_id].filter(Boolean).join("|"),
     nombre: [activos.map(nombreRasgo).join(" "), carry ? nombreUnidad(carry) : null].filter(Boolean).join(" · "),
@@ -130,95 +140,118 @@ function claveDeComp(p, set) {
   };
 }
 
-function moda(mapa, n) {
-  return [...mapa.entries()]
-    .sort((a, b) => b[1].veces - a[1].veces)
-    .slice(0, n)
-    .map(([, v]) => v.dato);
+function acumula(datos, p, set) {
+  const clave = claveDeComp(p, set);
+  if (!clave.id) return;
+  const c = (datos.comps[clave.id] ??= {
+    nombre: clave.nombre, rasgos: clave.rasgos, carry: clave.carry,
+    partidas: 0, suma: 0, top4: 0, primeros: 0, unidades: {}, aumentos: {},
+  });
+  const puesto = p.placement ?? 8;
+  c.partidas++;
+  c.suma += puesto;
+  if (puesto <= 4) c.top4++;
+  if (puesto === 1) c.primeros++;
+  for (const u of p.units ?? []) {
+    const e = (c.unidades[u.character_id] ??= { veces: 0, estrellas: 1, objetos: {} });
+    e.veces++;
+    e.estrellas = Math.max(e.estrellas, u.tier ?? 1);
+    for (const it of u.itemNames ?? []) e.objetos[it] = (e.objetos[it] ?? 0) + 1;
+  }
+  for (const a of p.augments ?? []) c.aumentos[a] = (c.aumentos[a] ?? 0) + 1;
 }
 
-async function calcular(env) {
-  const set = await datosDelSet();
-  const jugadores = Number(env.JUGADORES ?? 40);
-  const porJugador = Number(env.PARTIDAS ?? 8);
+async function ronda(env) {
+  const set = await env.COMPS.get(K_SET, "json");
+  if (!set) throw new Error("falta el mapa del set en KV: sube set:v1 con tools/set.mjs");
+  let datos = (await env.COMPS.get(K_DATOS, "json")) ?? vacio();
+
+  const porJugador = Number(env.PARTIDAS ?? 5);
+  const jugadores = Number(env.JUGADORES ?? 6);
+  const tope = Number(env.PARTIDAS_RONDA ?? 30);
 
   const liga = await riot(env, env.PLATAFORMA, "/tft/league/v1/challenger");
-  const puuids = (liga.entries ?? [])
-    .sort((a, b) => (b.leaguePoints ?? 0) - (a.leaguePoints ?? 0))
-    .slice(0, jugadores)
-    .map((e) => e.puuid)
-    .filter(Boolean);
+  const entradas = (liga.entries ?? []).filter((e) => e.puuid).sort((a, b) => (b.leaguePoints ?? 0) - (a.leaguePoints ?? 0));
+  if (!entradas.length) throw new Error("la liga de Challenger vino vacia");
 
-  const ids = new Set();
-  for (const puuid of puuids) {
+  // Tanda rotatoria: cada ronda mira jugadores distintos, asi la muestra no se
+  // queda pegada a los mismos diez de siempre.
+  const inicio = (datos.cursor ?? 0) % entradas.length;
+  const ids = [];
+  for (let i = 0; i < jugadores; i++) {
+    const e = entradas[(inicio + i) % entradas.length];
     try {
-      const lista = await riot(env, env.RUTA, `/tft/match/v1/matches/by-puuid/${puuid}/ids?count=${porJugador}`);
-      for (const id of lista) ids.add(id);
+      ids.push(...(await riot(env, env.RUTA, `/tft/match/v1/matches/by-puuid/${e.puuid}/ids?count=${porJugador}`)));
     } catch {
-      // un jugador que falle no puede tumbar el calculo entero
+      // un jugador que falle no tumba la ronda
     }
   }
+  datos.cursor = inicio + jugadores;
 
-  const comps = new Map();
-  let partidas = 0;
-  let parche = null;
-  for (const id of ids) {
+  const vistas = new Set(datos.vistas ?? []);
+  const nuevas = [...new Set(ids)].filter((id) => !vistas.has(id)).slice(0, tope);
+
+  let sumadas = 0;
+  let saltadas = 0;
+  for (const id of nuevas) {
     let m;
     try {
       m = await riot(env, env.RUTA, `/tft/match/v1/matches/${id}`);
     } catch {
       continue;
     }
-    // Solo partidas normales/clasificatorias de 8; fuera dobles y modos raros.
     const info = m.info ?? {};
-    if ((info.participants ?? []).length !== 8) continue;
-    if (info.queue_id != null && ![1090, 1100].includes(info.queue_id)) continue;
-    parche = info.game_version ?? parche;
-    partidas++;
-    for (const p of info.participants) {
-      const clave = claveDeComp(p, set);
-      if (!clave.id) continue;
-      let c = comps.get(clave.id);
-      if (!c) {
-        c = {
-          id: clave.id, nombre: clave.nombre, rasgos: clave.rasgos, carry: clave.carry,
-          partidas: 0, suma: 0, top4: 0, primeros: 0,
-          unidades: new Map(), objetos: new Map(), aumentos: new Map(), niveles: new Map(),
-        };
-        comps.set(clave.id, c);
-      }
-      c.partidas++;
-      c.suma += p.placement ?? 8;
-      if ((p.placement ?? 8) <= 4) c.top4++;
-      if ((p.placement ?? 8) === 1) c.primeros++;
-      for (const u of p.units ?? []) {
-        const info = set.unidades.get(u.character_id);
-        const e = c.unidades.get(u.character_id) ?? {
-          veces: 0,
-          dato: { id: u.character_id, nombre: info?.nombre ?? u.character_id, coste: info?.coste ?? u.rarity + 1, icono: info?.icono ?? null, estrellas: u.tier ?? 1, objetos: [] },
-        };
-        e.veces++;
-        e.dato.estrellas = Math.max(e.dato.estrellas, u.tier ?? 1);
-        for (const it of u.itemNames ?? []) {
-          const objeto = set.objetos.get(it)?.nombre ?? it;
-          if (!e.dato.objetos.includes(objeto) && e.dato.objetos.length < 3) e.dato.objetos.push(objeto);
-        }
-        c.unidades.set(u.character_id, e);
-      }
-      for (const a of p.augments ?? []) {
-        const e = c.aumentos.get(a) ?? { veces: 0, dato: a.replace(/^TFT\d*_?Augment_?/i, "").replace(/([a-z])([A-Z])/g, "$1 $2") };
-        e.veces++;
-        c.aumentos.set(a, e);
-      }
+    vistas.add(id);
+    // Solo normal y clasificatoria de 8: fuera dobles, hiperrapido y modos raros.
+    if ((info.participants ?? []).length !== 8) { saltadas++; continue; }
+    if (info.queue_id != null && ![1090, 1100].includes(info.queue_id)) { saltadas++; continue; }
+
+    const parche = parcheDe(info.game_version);
+    if (parche && datos.parche && parche !== datos.parche) {
+      // Parche nuevo: la muestra vieja ya no representa nada.
+      datos = { ...vacio(), cursor: datos.cursor, parche };
+      vistas.clear();
+      vistas.add(id);
     }
+    datos.parche ??= parche;
+
+    for (const p of info.participants) acumula(datos, p, set);
+    datos.partidas++;
+    sumadas++;
   }
 
-  // Solo comps con muestra suficiente; el orden manda el puesto medio.
-  const minimo = Math.max(3, Math.round(partidas * 0.02));
-  const lista = [...comps.values()]
-    .filter((c) => c.partidas >= minimo)
-    .map((c) => ({
-      id: c.id,
+  datos.rondas = (datos.rondas ?? 0) + 1;
+  datos.calculado = new Date().toISOString();
+  datos.vistas = [...vistas].slice(-TOPE_PARTIDAS);
+  datos.set = set.numero ?? null;
+  await env.COMPS.put(K_DATOS, JSON.stringify(datos));
+
+  return {
+    ronda: datos.rondas,
+    nuevas: sumadas,
+    saltadas,
+    partidas: datos.partidas,
+    comps: Object.keys(datos.comps).length,
+    parche: datos.parche,
+  };
+}
+
+// ---- Lo que ve la app ----
+
+const masVistos = (obj, n) =>
+  Object.entries(obj ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([k]) => k);
+
+function salida(datos, set) {
+  const unidad = (id) => set?.unidades?.[id] ?? {};
+  const nombreObjeto = (id) => set?.objetos?.[id] ?? String(id).replace(/^TFT\d*_?(Item_)?/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
+  const minimo = Math.max(4, Math.round(datos.partidas * 0.03));
+  const lista = Object.entries(datos.comps ?? {})
+    .filter(([, c]) => c.partidas >= minimo)
+    .map(([id, c]) => ({
+      id,
       nombre: c.nombre,
       rasgos: c.rasgos,
       carry: c.carry,
@@ -226,23 +259,33 @@ async function calcular(env) {
       puesto: c.suma / c.partidas,
       top4: c.top4 / c.partidas,
       primeros: c.primeros / c.partidas,
-      unidades: moda(c.unidades, 9).sort((a, b) => b.coste - a.coste),
-      aumentos: moda(c.aumentos, 3),
+      unidades: Object.entries(c.unidades ?? {})
+        .sort((a, b) => b[1].veces - a[1].veces)
+        .slice(0, 9)
+        .map(([uid, u]) => ({
+          id: uid,
+          nombre: unidad(uid).n ?? uid.replace(/^TFT\d*_?/, ""),
+          coste: unidad(uid).c ?? 1,
+          icono: unidad(uid).i ?? null,
+          estrellas: u.estrellas,
+          objetos: masVistos(u.objetos, 3).map(nombreObjeto),
+          veces: u.veces,
+        }))
+        .sort((a, b) => b.coste - a.coste),
+      aumentos: masVistos(c.aumentos, 3).map(nombreObjeto),
     }))
     .sort((a, b) => a.puesto - b.puesto)
     .slice(0, 24);
 
-  // Tier por puesto medio: es la escala que usan las tier lists de TFT.
-  for (const c of lista) {
-    c.tier = c.puesto <= 4.0 ? "S" : c.puesto <= 4.35 ? "A" : c.puesto <= 4.6 ? "B" : "C";
-  }
+  // Tier por puesto medio, que es la escala real de TFT (4.5 = del monton).
+  for (const c of lista) c.tier = c.puesto <= 4.0 ? "S" : c.puesto <= 4.35 ? "A" : c.puesto <= 4.6 ? "B" : "C";
 
   return {
-    calculado: new Date().toISOString(),
-    parche: parche ? String(parche).split(" ")[0] : null,
-    set: set.numero,
-    region: env.PLATAFORMA,
-    partidas,
+    calculado: datos.calculado,
+    parche: datos.parche,
+    set: datos.set,
+    partidas: datos.partidas,
+    rondas: datos.rondas,
     comps: lista,
   };
 }

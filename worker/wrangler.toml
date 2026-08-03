@@ -7,8 +7,9 @@ compatibility_date = "2026-08-01"
 [vars]
 PLATAFORMA = "na1"
 RUTA = "americas"
-JUGADORES = "40"      # cuantos challenger se miran
-PARTIDAS = "8"        # cuantas partidas recientes de cada uno
+JUGADORES = "6"       # cuantos challenger se miran por ronda
+PARTIDAS = "5"        # cuantas partidas recientes de cada uno
+PARTIDAS_RONDA = "30" # tope de partidas nuevas por ronda (limite de subpeticiones)
 
 # Cache de las comps ya calculadas. Crear con:
 #   npx wrangler kv namespace create COMPS
@@ -17,6 +18,6 @@ PARTIDAS = "8"        # cuantas partidas recientes de cada uno
 binding = "COMPS"
 id = "963d2be5ffa143c3bcdda6d65fcc3ab9"
 
-# Recalculo diario a las 6:00 UTC (madrugada en America, manana en Europa).
+# Una ronda cada media hora: la muestra crece sola sin rozar ningun limite.
 [triggers]
-crons = ["0 6 * * *"]
+crons = ["*/30 * * * *"]
