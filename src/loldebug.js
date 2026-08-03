@@ -1,9 +1,12 @@
 // Sonda de diagnostico de LoL/TFT: vuelca lo que responden el LCU y la API en
 // vivo con el cliente abierto. Sirve para comprobar en una cola concreta
 // (reclutamiento, ARAM, Arena, TFT...) que estamos leyendo todo lo que hay.
-//   node src/loldebug.js            resumen de cada endpoint
-//   node src/loldebug.js --crudo    ademas, el JSON completo
-//   node src/loldebug.js /ruta/lcu  consulta una ruta suelta del LCU
+//   node src/loldebug.js              resumen de cada endpoint
+//   node src/loldebug.js --crudo      ademas, el JSON completo
+//   node src/loldebug.js /ruta/lcu    consulta una ruta suelta del LCU
+//   node src/loldebug.js --rutas tft  lista TODAS las rutas del LCU que
+//                                     contengan ese texto (catalogo real del
+//                                     cliente, util para ver que hay de TFT)
 import { readLockfile } from "./lockfile.js";
 import { request, requestOk } from "./http.js";
 
@@ -70,6 +73,17 @@ const creds = await credenciales().catch((err) => {
 
 if (!creds) {
   console.log("El cliente de League no esta abierto (o el Riot Client no lo publica todavia).");
+} else if (process.argv.includes("--rutas")) {
+  // Catalogo de endpoints del propio cliente: la unica forma fiable de saber
+  // que expone esta version (las rutas cambian entre parches).
+  const filtro = (process.argv[process.argv.indexOf("--rutas") + 1] ?? "tft").toLowerCase();
+  const headers = { Authorization: creds.auth };
+  const doc =
+    (await request(`${creds.base}/swagger/v3/openapi.json`, { headers, insecure: true }).catch(() => null))?.body ??
+    (await request(`${creds.base}/help?format=Full`, { headers, insecure: true }).catch(() => null))?.body;
+  const rutas = Object.keys(doc?.paths ?? doc ?? {}).filter((r) => r.toLowerCase().includes(filtro));
+  console.log(`${rutas.length} rutas con "${filtro}":`);
+  for (const r of rutas.sort()) console.log("  " + r);
 } else {
   console.log("LCU en " + creds.base);
   const headers = { Authorization: creds.auth };
