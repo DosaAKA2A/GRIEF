@@ -7,6 +7,9 @@ const FASES = {
   core: "En partida",
   "lol-champselect": "Selección de campeones",
   "lol-game": "En partida",
+  "tft-game": "En partida",
+  "lol-eog": "Resumen de la partida",
+  "lol-lobby": "Lobby",
 };
 
 // Color por indice de tier (0-27). El color es el dato: se lee desde lejos.
@@ -122,9 +125,19 @@ function filaJugador(r, juego) {
   // Columna de identidad: quien es (arriba) y que rango tiene (abajo).
   const cuerpo = el("div", "cuerpo");
   const linea1 = el("div", "linea1");
+  // agent null = en ese modo no hay pick que ensenar (TFT, lobby); "-" si lo
+  // hay pero todavia no se ha elegido.
   const sinPick = !r.agent || r.agent === "-";
-  linea1.append(el("span", "agente" + (sinPick ? " sin-pick" : ""), sinPick ? "sin pick" : r.agent));
+  const agente = r.agent === null ? null : el("span", "agente" + (sinPick ? " sin-pick" : ""), sinPick ? "sin pick" : r.agent);
   const nombre = el("span", "nombre" + (r.incognito ? " oculto" : ""), r.name);
+  // El detalle largo (build, runas, hechizos, rango) no cabe en la fila: vive
+  // en el tooltip, que es donde la vista se para a mirar.
+  if (r.tip) {
+    const ancla = agente ?? nombre;
+    ancla.dataset.tip = r.tip;
+    ancla.style.cursor = "help";
+  }
+  if (agente) linea1.append(agente);
   if (r.me) nombre.append(el("span", "yo", "TU"));
   linea1.append(nombre);
 
@@ -163,17 +176,31 @@ function filaJugador(r, juego) {
     const b = el("b", valor >= 1.3 ? "bien" : valor <= 0.8 ? "mal" : "", valor.toFixed(2));
     statKda.append(b, el("small", null, "KDA"));
     const hs = r.kda.hsRate != null ? Math.round(r.kda.hsRate * 100) : null;
-    statKda.append(el("span", "sub" + (hs != null && hs >= 30 ? " alto" : ""), hs != null ? `HS ${hs}%` : `${r.kda.games} partidas`));
-    statKda.dataset.tip = `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas`;
+    // sub/tip propios: en LoL el bloque es de la partida en curso, no de un
+    // historial, asi que el texto de apoyo lo decide quien manda la fila.
+    const sub = r.kda.sub ?? (hs != null ? `HS ${hs}%` : `${r.kda.games} partidas`);
+    statKda.append(el("span", "sub" + (hs != null && hs >= 30 ? " alto" : ""), sub));
+    statKda.dataset.tip = r.kda.tip ?? `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas`;
   } else {
     statKda.append(el("b", "vacio", "—"), el("small", null, "KDA"));
   }
 
   li.append(espina, retrato, insignia, cuerpo, statKda);
 
-  // ADR + win rate de las ultimas competitivas (solo Valorant: sale del
-  // detalle de partida). Mismo sitio en todas las filas, con o sin dato.
-  if (juego !== "lol") {
+  // Segunda columna de stats. En LoL la llena el tracker segun la fase (CS en
+  // partida, daño al acabar, maestria o winrate antes de empezar); en Valorant
+  // es siempre el ADR. Misma anchura en los dos casos: la fila no se mueve.
+  if (juego === "lol") {
+    const stat2 = el("div", "stat stat-extra");
+    if (r.stat2) {
+      stat2.append(el("b", r.stat2.clase ?? "", r.stat2.valor ?? "—"), el("small", null, r.stat2.rotulo ?? ""));
+      if (r.stat2.sub) stat2.append(el("span", "sub", r.stat2.sub));
+      if (r.stat2.tip) stat2.dataset.tip = r.stat2.tip;
+    } else {
+      stat2.append(el("b", "vacio", "—"), el("small", null, "STATS"));
+    }
+    li.append(stat2);
+  } else {
     const statAdr = el("div", "stat stat-adr");
     if (r.kda?.adr != null) {
       const adr = Math.round(r.kda.adr);
@@ -324,10 +351,15 @@ function pintar(estado) {
     $("banda-sub").textContent = [estado.modo, estado.servidor ? `Servidor ${estado.servidor}` : null]
       .filter(Boolean)
       .join(" · ");
-  } else if (estado.game === "lol" && estado.lado) {
-    banda.className = "banda lado-" + estado.lado;
-    $("banda-titulo").textContent = estado.lado === "azul" ? "Lado azul" : "Lado rojo";
-    $("banda-sub").textContent = estado.lado === "azul" ? "Mitad inferior del mapa" : "Mitad superior del mapa";
+  } else if (estado.game === "lol" && (estado.lado || estado.modo || estado.contexto)) {
+    // Titulo: la cola que se esta jugando (reclutamiento, ARAM, TFT...); si el
+    // cliente no la da, el bando. Debajo, el marcador y los objetivos en vivo.
+    banda.className = "banda" + (estado.lado ? " lado-" + estado.lado : "");
+    const bando = estado.lado === "azul" ? "Lado azul" : estado.lado === "rojo" ? "Lado rojo" : null;
+    $("banda-titulo").textContent = estado.modo ?? bando ?? "";
+    $("banda-sub").textContent = [estado.modo && bando ? bando : null, estado.contexto]
+      .filter(Boolean)
+      .join(" · ");
   } else {
     banda.hidden = true;
   }

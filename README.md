@@ -3,7 +3,7 @@
 Tracker ligero multi-juego: stats de los jugadores de tu partida antes de empezar. Sin overlay in-game, sin tocar el proceso del juego, sin Overwolf.
 
 - **Valorant** (completo): API local del cliente de Riot — mapa y servidor, rangos, RR, KDA, HS%, nivel, parties y senales de cheater/smurf/booster.
-- **League of Legends**: LCU + Live Client Data — seleccion de campeones (tu equipo con rango/LP), bando azul/rojo, y en partida los 10 con campeon, KDA en vivo y rango best-effort.
+- **League of Legends y TFT**: LCU + Live Client Data, en cualquier cola (reclutamiento, clasificatoria, ARAM, Arena, URF, bots, personalizada) y en TFT. Lobby con los rangos del grupo, seleccion de campeones con ambos equipos y baneos, partida en vivo con KDA, CS/min, vision, objetos, runas, hechizos y objetivos del equipo, y resumen al acabar con daño, oro, CS y vision de los diez.
 
 La app detecta sola que juego esta vivo y muestra ese.
 
@@ -31,6 +31,10 @@ npm run dist        # construye instalador NSIS + exe portable en dist/
   del resto (match-details pesa ~1 MB por partida); con cache es inmediato.
 - Jugadores en modo incognito salen como `(oculto)`.
 - `npm run ui` acepta `--port N` y `--no-open`.
+- `npm run lol:debug` vuelca lo que responden el LCU y la API en vivo con el
+  cliente abierto: sirve para comprobar una cola concreta (`--crudo` para el
+  JSON entero). Con `GRIEF_LCU=https://127.0.0.1:PUERTO` se apunta el tracker
+  a otro LCU o a un simulacro.
 
 ## Como funciona
 
@@ -47,6 +51,11 @@ El tracker en si sigue sin dependencias npm (Node >= 20 y modulos nativos); elec
 ## Limitaciones conocidas
 
 - API interna no documentada: Riot puede cambiarla en cualquier parche.
+- TFT no publica API en vivo (el puerto 2999 solo existe en partidas de LoL):
+  de una partida de TFT se ven la mesa, los rangos de TFT y las parties, pero
+  no oro, vida ni composicion en tiempo real.
+- En la seleccion de campeones el rival solo aparece en las colas donde el
+  cliente lo publica (reclutamiento, clasificatoria, torneos); en ciegas no.
 - Un lockfile presente no garantiza cliente vivo (queda huerfano si el cliente muere); se detecta por `ECONNREFUSED`.
 - Si el websocket local falla, se cae con gracia al sondeo cada 10 s.
 

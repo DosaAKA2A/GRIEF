@@ -9,8 +9,8 @@ const LABELS = { valorant: "VALORANT", lol: "League of Legends" };
 
 export class MultiTracker extends EventEmitter {
   #snapshots = {
-    valorant: { status: "Valorant: arrancando...", phase: null, label: null, rows: [], updatedAt: 0 },
-    lol: { status: "LoL: arrancando...", phase: null, label: null, rows: [], updatedAt: 0 },
+    valorant: { status: "Valorant: arrancando...", phase: null, label: null, rows: [], extra: {}, prioridad: 0, updatedAt: 0 },
+    lol: { status: "LoL: arrancando...", phase: null, label: null, rows: [], extra: {}, prioridad: 0, updatedAt: 0 },
   };
   #activo = null;
 
@@ -28,13 +28,14 @@ export class MultiTracker extends EventEmitter {
         this.#push();
       });
       t.on("match", (m) => {
-        snap.phase = m.phase;
-        snap.label = m.label;
-        snap.rows = m.rows;
-        snap.mapa = m.mapa ?? null;
-        snap.servidor = m.servidor ?? null;
-        snap.lado = m.lado ?? null;
-        snap.modo = m.modo ?? null;
+        // Todo lo que no sea fase/etiqueta/filas viaja tal cual a la UI: cada
+        // juego adjunta el contexto que tenga (mapa, bando, cola, marcador).
+        const { phase, label, rows, prioridad, ...extra } = m;
+        snap.phase = phase;
+        snap.label = label;
+        snap.rows = rows;
+        snap.extra = extra;
+        snap.prioridad = prioridad ?? 3;
         snap.updatedAt = Date.now();
         this.#activo = game;
         this.#push();
@@ -43,6 +44,8 @@ export class MultiTracker extends EventEmitter {
         snap.phase = null;
         snap.label = null;
         snap.rows = [];
+        snap.extra = {};
+        snap.prioridad = 0;
         snap.updatedAt = Date.now();
         this.#push();
       });
@@ -61,15 +64,17 @@ export class MultiTracker extends EventEmitter {
   }
 
   getState() {
-    // Juego activo: el ultimo con partida y que aun la tenga.
-    let game = this.#activo && this.#snapshots[this.#activo].rows.length ? this.#activo : null;
-    if (!game) {
-      let mejor = 0;
-      for (const [g, s] of Object.entries(this.#snapshots)) {
-        if (s.rows.length && s.updatedAt > mejor) {
-          mejor = s.updatedAt;
-          game = g;
-        }
+    // Juego activo: manda la prioridad (una partida en curso siempre le gana
+    // a un lobby abierto de fondo) y, a igualdad, el ultimo en actualizarse.
+    let game = null;
+    let mejor = [0, 0];
+    for (const [g, s] of Object.entries(this.#snapshots)) {
+      if (!s.rows.length) continue;
+      const peso = [s.prioridad ?? 3, s.updatedAt];
+      const actual = g === this.#activo ? [peso[0], peso[1] + 1] : peso;
+      if (actual[0] > mejor[0] || (actual[0] === mejor[0] && actual[1] > mejor[1])) {
+        mejor = actual;
+        game = g;
       }
     }
     if (game) {
@@ -81,10 +86,11 @@ export class MultiTracker extends EventEmitter {
         phase: s.phase,
         label: s.label,
         rows: s.rows,
-        mapa: s.mapa ?? null,
-        servidor: s.servidor ?? null,
-        lado: s.lado ?? null,
-        modo: s.modo ?? null,
+        mapa: null,
+        servidor: null,
+        lado: null,
+        modo: null,
+        ...s.extra,
         perfil: this.#snapshots.valorant.perfil ?? null,
         updatedAt: s.updatedAt,
       };

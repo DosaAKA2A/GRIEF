@@ -851,6 +851,9 @@ body::before {
 }
 .jugador .stat .sub.alto { color: #e8a33c; font-weight: 600; }
 .jugador .stat-adr { flex-basis: 4.6rem; }
+/* Segunda columna de LoL (CS, daño, maestria...): misma anchura que el ADR */
+.jugador .stat-extra { flex-basis: 4.6rem; }
+.jugador .stat-extra small { font-size: 0.52rem; letter-spacing: 0.14em; }
 .jugador .stat-rr { flex-basis: 4.4rem; }
 
 .jugador .rr-barra {

@@ -1,7 +1,7 @@
 {
   "name": "grief",
-  "version": "1.0.7",
-  "description": "GRIEF: tracker ligero de Valorant via API local del cliente de Riot",
+  "version": "1.1.0",
+  "description": "GRIEF: tracker ligero de Valorant, League of Legends y TFT via API local del cliente de Riot",
   "author": "IRIS Studio",
   "type": "module",
   "main": "electron/main.js",
@@ -10,7 +10,8 @@
     "watch": "node src/cli.js --watch",
     "ui": "node src/server.js",
     "app": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "lol:debug": "node src/loldebug.js"
   },
   "engines": {
     "node": ">=20"
@@ -31,7 +32,10 @@
       "package.json"
     ],
     "win": {
-      "target": ["nsis", "portable"],
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "build/icon.ico"
     },
     "nsis": {
