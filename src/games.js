@@ -50,7 +50,10 @@ export class MultiTracker extends EventEmitter {
         this.#push();
       });
       t.on("profile", (p) => {
-        snap.perfil = p;
+        // Cada juego trae su perfil; gana el que se haya refrescado ultimo,
+        // que en la practica es el del cliente que este abierto ahora.
+        snap.perfil = p.game ? p : { ...p, game };
+        snap.perfilAt = Date.now();
         this.#push();
       });
       t.start().catch((err) => {
@@ -91,7 +94,7 @@ export class MultiTracker extends EventEmitter {
         lado: null,
         modo: null,
         ...s.extra,
-        perfil: this.#snapshots.valorant.perfil ?? null,
+        perfil: this.#perfilActivo(),
         updatedAt: s.updatedAt,
       };
     }
@@ -102,9 +105,23 @@ export class MultiTracker extends EventEmitter {
       phase: null,
       label: null,
       rows: [],
-      perfil: this.#snapshots.valorant.perfil ?? null,
+      perfil: this.#perfilActivo(),
       updatedAt: Math.max(...Object.values(this.#snapshots).map((s) => s.updatedAt)) || null,
     };
+  }
+
+  // Perfil a la vista: el ultimo refrescado. Cada tracker solo emite el suyo
+  // mientras su cliente este vivo, asi que gana el juego que tengas abierto.
+  #perfilActivo() {
+    let mejor = null;
+    let cuando = -1;
+    for (const s of Object.values(this.#snapshots)) {
+      if (s.perfil && (s.perfilAt ?? 0) > cuando) {
+        cuando = s.perfilAt ?? 0;
+        mejor = s.perfil;
+      }
+    }
+    return mejor;
   }
 
   #push() {

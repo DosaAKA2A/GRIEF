@@ -273,7 +273,121 @@ function filaPartida(p) {
   return li;
 }
 
-function pintarPerfil(p) {
+// Fila de partida de LoL/TFT: cola y resultado, campeon, y los numeros de esa
+// partida. Misma retícula que las de Valorant.
+function filaPartidaLol(m) {
+  const li = el("li", "partida " + (m.won ? "ganada" : "perdida"));
+  const cabecera = el("div", "partida-mapa");
+  const resultado = m.puesto ? `Puesto ${m.puesto}` : m.won ? "Victoria" : "Derrota";
+  cabecera.append(el("b", null, m.modo || "Partida"), el("small", null, resultado));
+
+  const retrato = el("div", "partida-agente");
+  if (m.champId) {
+    const img = el("img", null);
+    img.src = `lol/champs/${m.champId}.png`;
+    img.alt = "";
+    img.onerror = () => img.remove();
+    retrato.append(img);
+  }
+
+  const cuerpo = el("div", "partida-cuerpo");
+  cuerpo.append(el("span", "partida-agente-nombre", m.campeon ?? ""));
+  const mins = Math.round((m.duracion ?? 0) / 60);
+  cuerpo.append(el("span", "partida-modo", mins ? `${mins} min` : ""));
+
+  const stats = el("div", "partida-stats");
+  const ratio = m.d > 0 ? (m.k + m.a) / m.d : m.k + m.a;
+  for (const [valor, rotulo, clase] of [
+    [m.champId ? `${m.k}/${m.d}/${m.a}` : null, "KDA", ratio >= 3 ? "bien" : ratio <= 1.5 ? "mal" : ""],
+    [m.cs || null, "CS", ""],
+    [m.daño ? Math.round(m.daño / 1000) + "k" : null, "DAÑO", ""],
+    [m.vision || null, "VIS", ""],
+  ]) {
+    const st = el("div", "partida-stat");
+    st.append(el("b", clase, valor ?? "—"), el("small", null, rotulo));
+    stats.append(st);
+  }
+
+  li.append(cabecera, retrato, cuerpo, stats);
+  return li;
+}
+
+// Perfil de LoL/TFT: avatar y nivel, el rango de cada cola y las últimas
+// partidas. Ocupa el mismo panel que el de Valorant.
+function pintarPerfilLol(p) {
+  const avatar = $("perfil-avatar");
+  avatar.hidden = false;
+  const img = $("perfil-avatar-img");
+  img.src = p.icono ?? "";
+  img.onerror = () => {
+    if (p.iconoAlt && img.src !== p.iconoAlt) img.src = p.iconoAlt; // Data Dragon de respaldo
+    else img.style.visibility = "hidden";
+  };
+  $("perfil-avatar-nivel").textContent = p.level != null ? p.level : "";
+
+  // Rango principal: el de solo/dúo si lo hay; si no, el primero con dato.
+  const principal = p.rangos?.[0] ?? null;
+  $("perfil-rango-img").src = principal?.icon ?? "";
+  $("perfil-rango-img").hidden = !principal?.icon;
+  $("perfil-rango-nombre").textContent = principal ? `${principal.cola} · ${principal.label}` : "Sin clasificar";
+  $("perfil-rango-nombre").style.color = "var(--claro)";
+  $("perfil-rr").textContent = principal?.lp != null ? `${principal.lp} LP` : "";
+  $("perfil-rr-relleno").style.width = Math.min(100, Math.max(0, principal?.lp ?? 0)) + "%";
+  $("perfil-rr-relleno").style.background = "var(--teal)";
+
+  $("perfil-nombre").textContent = p.name || "Tu perfil";
+  $("perfil-sub").textContent = [
+    p.level != null ? `Nivel ${p.level}` : null,
+    p.xpPct != null ? `${p.xpPct}% al siguiente` : null,
+    p.partidas?.length ? `${p.partidas.length} partidas recientes` : null,
+  ].filter(Boolean).join(" · ");
+
+  // Los dos huecos laterales llevan las otras colas con rango.
+  const otros = (p.rangos ?? []).slice(1, 3);
+  const lados = [
+    ["perfil-peak-img", "perfil-peak", otros[0]],
+    ["perfil-agente-img", "perfil-agente", otros[1]],
+  ];
+  for (const [idImg, idTexto, r] of lados) {
+    $(idImg).src = r?.icon ?? "";
+    $(idImg).hidden = !r?.icon;
+    $(idTexto).textContent = r ? `${r.label}${r.lp != null ? ` · ${r.lp} LP` : ""}` : "—";
+    const rotulo = $(idTexto).previousElementSibling;
+    if (rotulo) rotulo.textContent = r?.cola ?? "—";
+  }
+
+  const k = p.kda;
+  const tiles = [];
+  if (k) {
+    tiles.push(
+      tilePerfil(k.kda.toFixed(2), "KDA", `${k.kills}/${k.deaths}/${k.assists}`, k.kda >= 3 ? "bien" : k.kda <= 1.5 ? "mal" : ""),
+      tilePerfil(Math.round(k.winRate * 100) + "%", "WR", `últimas ${k.games}`, k.winRate >= 0.6 ? "bien" : k.winRate <= 0.4 ? "mal" : ""),
+      tilePerfil(k.csMin.toFixed(1), "CS/MIN", "súbditos"),
+      tilePerfil(Math.round(k.dañoMin), "DPM", "daño por minuto"),
+      tilePerfil(Math.round(k.vision), "VISIÓN", "por partida")
+    );
+  }
+  if (p.campeonTop) {
+    tiles.push(
+      tilePerfil(
+        Math.round((p.campeonTop.wins / p.campeonTop.games) * 100) + "%",
+        "Top",
+        `${p.campeonTop.campeon ?? ""} · ${p.campeonTop.games}`
+      )
+    );
+  }
+  $("perfil-tiles").replaceChildren(...tiles);
+
+  $("perfil-partidas-titulo").textContent = "Últimas partidas";
+  $("perfil-lista").replaceChildren(...(p.partidas ?? []).slice(0, 5).map(filaPartidaLol));
+}
+
+function pintarPerfilValorant(p) {
+  $("perfil-avatar").hidden = true;
+  $("perfil-partidas-titulo").textContent = "Últimas competitivas";
+  // Los dos huecos laterales son de LoL en su perfil: aqui vuelven a lo suyo.
+  $("perfil-peak").previousElementSibling.textContent = "Peak";
+  $("perfil-agente").previousElementSibling.textContent = "Agente top";
   const icono = p.tier >= 3 ? `rangos/${p.tier}.png` : null;
   $("perfil-rango-img").src = icono ?? "";
   $("perfil-rango-img").hidden = !icono;
@@ -320,12 +434,19 @@ function pintarPerfil(p) {
   $("perfil-lista").replaceChildren(...p.partidas.slice(0, 5).map(filaPartida));
 }
 
+function pintarPerfil(p) {
+  if (p.game === "lol") pintarPerfilLol(p);
+  else pintarPerfilValorant(p);
+}
+
 function pintar(estado) {
   $("estado").textContent = "";
   const hayPartida = estado.rows && estado.rows.length > 0;
   const hayPerfil = !hayPartida && !!estado.perfil;
 
-  $("juego").textContent = hayPerfil ? "Valorant · Tu perfil" : estado.gameLabel ?? "Valorant · LoL";
+  $("juego").textContent = hayPerfil
+    ? `${estado.perfil.game === "lol" ? "League of Legends" : "Valorant"} · Tu perfil`
+    : estado.gameLabel ?? "Valorant · LoL";
   $("vacio").hidden = hayPartida || hayPerfil;
   $("perfil").hidden = !hayPerfil;
   $("equipos").hidden = !hayPartida;

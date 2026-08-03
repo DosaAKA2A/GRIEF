@@ -71,6 +71,11 @@
     <!-- Perfil propio: se muestra con el cliente abierto y sin partida -->
     <section id="perfil" class="perfil" hidden>
       <div class="perfil-cab">
+        <!-- Avatar: el icono de perfil del juego que lo tenga (LoL/TFT) -->
+        <div id="perfil-avatar" class="perfil-avatar" hidden>
+          <img id="perfil-avatar-img" src="" alt="">
+          <span id="perfil-avatar-nivel" class="perfil-avatar-nivel"></span>
+        </div>
         <div class="perfil-rango">
           <img id="perfil-rango-img" class="perfil-rango-img" src="" alt="">
           <div class="perfil-rango-textos">
@@ -98,7 +103,7 @@
       <div id="perfil-tiles" class="perfil-tiles"></div>
 
       <div class="perfil-partidas">
-        <h2>Últimas competitivas</h2>
+        <h2 id="perfil-partidas-titulo">Últimas competitivas</h2>
         <ul id="perfil-lista"></ul>
       </div>
     </section>

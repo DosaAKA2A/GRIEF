@@ -99,7 +99,12 @@ async function champions() {
   return champMap;
 }
 
+// Icono de perfil: Community Dragon los tiene todos desde el minuto uno del
+// parche; Data Dragon tarda en incorporar los nuevos, asi que va de respaldo
+// (la UI cambia de uno a otro si la imagen no carga).
 const iconoPerfil = (id) =>
+  id ? `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${id}.jpg` : null;
+const iconoPerfilAlt = (id) =>
   ddVersion && id ? `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/profileicon/${id}.png` : null;
 
 // Cola de clasificacion que toca mirar segun lo que se este jugando: en TFT
@@ -192,8 +197,19 @@ function objetivos(eventos, equipoDe) {
 
 const NOMBRE_MULTIKILL = { 2: "Doble", 3: "Triple", 4: "Cuádruple", 5: "Penta" };
 
+// Colas que se ensenan en el perfil, en orden de importancia.
+const COLAS_PERFIL = [
+  ["RANKED_SOLO_5x5", "Solo/dúo"],
+  ["RANKED_FLEX_SR", "Flexible"],
+  ["RANKED_TFT", "TFT"],
+  ["RANKED_TFT_DOUBLE_UP", "TFT dúo"],
+  ["RANKED_TFT_TURBO", "TFT hiperrápido"],
+  ["CHERRY", "Arena"],
+];
+
 export class LolTracker extends EventEmitter {
   #sig;
+  #perfilCache = null; // { perfil, at } — el historial pesa; 5 min basta
   #lcuCache = null; // { creds, at } — evita pedir external-sessions cada ciclo
   #ritmo = 10000; // ritmo adaptativo: sin cliente de Riot, sondeo lento
   status = "LoL: arrancando...";
@@ -446,7 +462,8 @@ export class LolTracker extends EventEmitter {
         const vivo = await this.#live();
         if (vivo) return this.#enPartida(lcu, gf, vivo, partida);
         this.#status("LoL: cliente abierto, sin partida.");
-        return this.#noMatch();
+        this.#noMatch();
+        return this.#perfil(lcu); // con el cliente abierto y sin partida, tu perfil
       }
     }
   }
@@ -906,6 +923,7 @@ export class LolTracker extends EventEmitter {
   // los diez (daño, oro, CS, vision, multikills...). Es el resumen que antes
   // se perdia en cuanto acababa la partida.
   async #finPartida(lcu, gf, partida) {
+    this.#perfilCache = null; // acaba de haber partida nueva: el perfil caduca
     const eog = await this.#jsonAlguno(lcu, [
       "/lol-end-of-game/v1/eog-stats-block",
       "/lol-end-of-game/v1/champion-mastery-updates",
@@ -998,6 +1016,101 @@ export class LolTracker extends EventEmitter {
         prioridad: 3,
       }
     );
+  }
+
+  // Tu perfil: lo que se ve con el cliente abierto y sin partida. Icono de
+  // perfil, nivel, rango de TODAS las colas (incluidas las de TFT) y las
+  // ultimas partidas con sus stats. Se reconstruye cada 5 min o al acabar una
+  // partida (el historial es la peticion mas pesada del LCU).
+  async #perfil(lcu) {
+    if (this.#perfilCache && Date.now() - this.#perfilCache.at < 5 * 60e3) {
+      return this.emit("profile", this.#perfilCache.perfil);
+    }
+    const yo = await this.#json(lcu, "/lol-summoner/v1/current-summoner");
+    if (!yo?.puuid) return;
+    const champs = await champions();
+    const [qm, hist] = await Promise.all([
+      this.#queueMap(lcu, yo.puuid),
+      this.#json(lcu, "/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=19"),
+    ]);
+
+    const rangos = [];
+    for (const [cola, nombre] of COLAS_PERFIL) {
+      const r = formatoRango(qm?.[cola], cola);
+      if (r) rangos.push({ ...r, cola: nombre });
+      else if (cola === "RANKED_SOLO_5x5" || cola === "RANKED_TFT") {
+        rangos.push({ label: "Sin clasificar", icon: "lol/rangos/unranked.png", lp: null, wins: null, losses: null, cola: nombre });
+      }
+    }
+
+    // Historial: cada partida con lo suyo. En TFT y Arena lo que cuenta es el
+    // puesto (subteamPlacement), no el KDA.
+    const partidas = [];
+    for (const g of hist?.games?.games ?? []) {
+      const id = (g.participantIdentities ?? []).find((p) => p.player?.puuid === yo.puuid)?.participantId;
+      const p = (g.participants ?? []).find((x) => x.participantId === id) ?? g.participants?.[0];
+      if (!p) continue;
+      const s = p.stats ?? {};
+      const esTft = g.queueId >= 1090 && g.queueId <= 1180;
+      partidas.push({
+        gameId: g.gameId,
+        modo: COLAS[g.queueId] ?? g.gameMode ?? "",
+        champId: p.championId || null,
+        campeon: champs.porId.get(p.championId) ?? null,
+        k: s.kills ?? 0,
+        d: s.deaths ?? 0,
+        a: s.assists ?? 0,
+        cs: (s.totalMinionsKilled ?? 0) + (s.neutralMinionsKilled ?? 0),
+        oro: s.goldEarned ?? 0,
+        daño: s.totalDamageDealtToChampions ?? 0,
+        vision: s.visionScore ?? 0,
+        nivel: s.champLevel ?? null,
+        puesto: esTft || g.gameMode === "CHERRY" ? s.subteamPlacement || null : null,
+        won: !!s.win,
+        duracion: g.gameDuration ?? 0,
+        fecha: g.gameCreationDate ?? null,
+      });
+    }
+
+    // Medias de las ultimas partidas con campeon (las de TFT no suman KDA).
+    const conKda = partidas.filter((m) => m.champId);
+    const suma = (f) => conKda.reduce((t, m) => t + f(m), 0);
+    const minutos = Math.max(1, suma((m) => m.duracion) / 60);
+    const kda = conKda.length
+      ? {
+          kills: suma((m) => m.k), deaths: suma((m) => m.d), assists: suma((m) => m.a),
+          kda: (suma((m) => m.k) + suma((m) => m.a)) / Math.max(1, suma((m) => m.d)),
+          games: conKda.length,
+          winRate: conKda.filter((m) => m.won).length / conKda.length,
+          csMin: suma((m) => m.cs) / minutos,
+          dañoMin: suma((m) => m.daño) / minutos,
+          vision: suma((m) => m.vision) / conKda.length,
+        }
+      : null;
+
+    const porCampeon = new Map();
+    for (const m of conKda) {
+      const e = porCampeon.get(m.champId) ?? { champId: m.champId, campeon: m.campeon, games: 0, wins: 0 };
+      e.games++;
+      if (m.won) e.wins++;
+      porCampeon.set(m.champId, e);
+    }
+    const campeonTop = [...porCampeon.values()].sort((a, b) => b.games - a.games)[0] ?? null;
+
+    const perfil = {
+      game: "lol",
+      name: yo.gameName ? `${yo.gameName}#${yo.tagLine ?? ""}`.replace(/#$/, "") : yo.displayName ?? "",
+      level: yo.summonerLevel ?? null,
+      xpPct: yo.percentCompleteForNextLevel ?? null,
+      icono: iconoPerfil(yo.profileIconId),
+      iconoAlt: iconoPerfilAlt(yo.profileIconId),
+      rangos,
+      kda,
+      campeonTop,
+      partidas,
+    };
+    this.#perfilCache = { perfil, at: Date.now() };
+    this.emit("profile", perfil);
   }
 
   // Lobby y busqueda de partida: ensena a los premades con su rango antes de
