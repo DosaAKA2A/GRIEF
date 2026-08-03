@@ -10,7 +10,7 @@
 // Arena, URF, bots, personalizada) y tambien en TFT, donde no existe API en
 // vivo y todo sale del LCU.
 import { EventEmitter } from "node:events";
-import { readLockfile } from "./lockfile.js";
+import { readLockfile, readLeagueLockfile } from "./lockfile.js";
 import { request, requestOk } from "./http.js";
 import { TtlCache } from "./cache.js";
 
@@ -238,6 +238,21 @@ export class LolTracker extends EventEmitter {
     // simulacro) sin tocar el cliente real.
     if (process.env.GRIEF_LCU) return { base: process.env.GRIEF_LCU, auth: process.env.GRIEF_LCU_AUTH ?? "" };
     if (this.#lcuCache && Date.now() - this.#lcuCache.at < 5 * 60e3) return this.#lcuCache.creds;
+
+    // 1) El lockfile del propio cliente de League: es el que funciona hoy.
+    const propio = await readLeagueLockfile();
+    if (propio) {
+      const creds = {
+        base: `https://127.0.0.1:${propio.port}`,
+        auth: "Basic " + Buffer.from(`riot:${propio.password}`).toString("base64"),
+      };
+      this.#lcuCache = { creds, at: Date.now() };
+      return creds;
+    }
+
+    // 2) Respaldo historico: el Riot Client publicaba puerto y token de cada
+    // producto en external-sessions. Se queda por si vuelve o en instalaciones
+    // donde el lockfile de League no este donde toca.
     const lock = await readLockfile();
     const auth = "Basic " + Buffer.from(`riot:${lock.password}`).toString("base64");
     const sessions = await requestOk(`https://127.0.0.1:${lock.port}/product-session/v1/external-sessions`, {
@@ -412,6 +427,7 @@ export class LolTracker extends EventEmitter {
       case "Reconnect": {
         this.#ritmo = 6000; // en partida los stats cambian: se mira mas fino
         const vivo = await this.#live();
+        if (vivo && (partida.esTft || vivo.gameData?.gameMode === "TFT")) return this.#enPartidaTft(gf, vivo, partida);
         if (vivo) return this.#enPartida(lcu, gf, vivo, partida);
         return this.#partidaSinVivo(lcu, gf, partida); // TFT y carga inicial
       }
@@ -617,6 +633,55 @@ export class LolTracker extends EventEmitter {
       rows,
       rows.map((r) => `${r.name}:${r.agent}:${r.kda.sub}:${r.stat2?.valor ?? ""}:${r.linea2extra}`).join(",") + "|" + contexto,
       { lado, modo, contexto, prioridad: 3 }
+    );
+  }
+
+  // Partida de TFT. La API en vivo SI responde (comprobado el 2026-08-03,
+  // cola 1100, Map22), pero con el esquema de LoL vacio: de cada jugador solo
+  // llegan el Riot ID, su NIVEL de TFT y si sigue en pie. No hay tablero, ni
+  // banca, ni oro, ni rivales identificables (el gameflow de TFT solo te trae
+  // a ti, y el alias/lookup no resuelve a los demas: sin puuid no hay rango).
+  // Ojo: en TFT todos los rivales llegan marcados isBot; no es cierto.
+  async #enPartidaTft(gf, vivo, partida) {
+    const jugadores = vivo.allPlayers ?? [];
+    const gd = vivo.gameData ?? {};
+    const yo = vivo.activePlayer?.riotId ?? vivo.activePlayer?.summonerName ?? null;
+    const riotIdDe = (p) =>
+      p.riotId || (p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagLine ?? ""}`.replace(/#$/, "") : p.summonerName) || "?";
+
+    const rows = jugadores.map((p) => {
+      const riotId = riotIdDe(p);
+      return {
+        puuid: riotId,
+        team: "-", // en TFT cada quien va a lo suyo: la UI lo pinta como FFA
+        name: riotId,
+        agent: null,
+        agentId: null,
+        agentIcon: null,
+        tier: null,
+        tierLabel: p.isDead ? "Eliminado" : "En juego",
+        tierIcon: null,
+        rr: null,
+        level: null,
+        me: yo != null && riotId === yo,
+        incognito: false,
+        alertas: [],
+        kda: null,
+        stat2: { valor: String(p.level ?? "?"), rotulo: "NIVEL", sub: p.isDead ? "eliminado" : null },
+        tip: "TFT no publica el tablero ni la banca de nadie: solo nivel y quién sigue en pie",
+        linea2extra: "",
+      };
+    });
+
+    const vivos = rows.filter((r) => r.tierLabel !== "Eliminado").length;
+    const modo = partida.modo ?? "Teamfight Tactics";
+    this.#status(`TFT: en partida (${modo}).`);
+    this.#emitIfChanged(
+      "tft-game",
+      "EN PARTIDA (TFT)",
+      rows,
+      rows.map((r) => `${r.name}:${r.stat2.valor}:${r.tierLabel}`).join(","),
+      { modo, lado: null, contexto: `${mmss(gd.gameTime)} · ${vivos} de ${rows.length} en pie`, prioridad: 3 }
     );
   }
 

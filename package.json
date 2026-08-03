@@ -1,6 +1,6 @@
 {
   "name": "grief",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "GRIEF: tracker ligero de Valorant, League of Legends y TFT via API local del cliente de Riot",
   "author": "IRIS Studio",
   "type": "module",
