@@ -439,7 +439,130 @@ function pintarPerfil(p) {
   else pintarPerfilValorant(p);
 }
 
+// ---- Comps de TFT ----
+// Las calcula el worker grief-tft con partidas reales de Challenger; aqui solo
+// se pintan. Se guarda la ultima respuesta para que la vista abra al instante
+// (y siga sirviendo algo si el worker no contesta).
+const COMPS_URL = "https://grief-tft.studio-iris2026.workers.dev/comps";
+const COSTES = { 1: "#7a8894", 2: "#46b083", 3: "#3fb7c9", 4: "#b18be8", 5: "#e8c35c" };
+let compsDatos = null;
+
+function tarjetaComp(c) {
+  const li = el("li", "comp tier-" + (c.tier ?? "C").toLowerCase());
+
+  const cab = el("div", "comp-cab");
+  cab.append(el("span", "comp-tier", c.tier ?? "?"), el("b", "comp-nombre", c.nombre ?? ""));
+  const cifras = el("span", "comp-cifras");
+  cifras.append(
+    el("i", null, c.puesto != null ? c.puesto.toFixed(2) : "—"),
+    el("small", null, "puesto medio"),
+    el("i", null, c.top4 != null ? Math.round(c.top4 * 100) + "%" : "—"),
+    el("small", null, "top 4"),
+    el("i", null, String(c.partidas ?? 0)),
+    el("small", null, "partidas")
+  );
+  cab.append(cifras);
+
+  const unidades = el("div", "comp-unidades");
+  for (const u of c.unidades ?? []) {
+    const casilla = el("div", "comp-unidad");
+    casilla.style.setProperty("--coste", COSTES[u.coste] ?? COSTES[1]);
+    if (u.icono) {
+      const img = el("img", null);
+      img.src = u.icono;
+      img.alt = "";
+      img.onerror = () => img.remove();
+      casilla.append(img);
+    }
+    casilla.append(el("span", "comp-unidad-nombre", u.nombre ?? ""));
+    if (u.estrellas >= 3) casilla.append(el("span", "comp-estrellas", "3★"));
+    casilla.dataset.tip = [
+      `${u.nombre} · ${u.coste} de oro`,
+      u.objetos?.length ? `Objetos: ${u.objetos.join(", ")}` : null,
+    ].filter(Boolean).join(" · ");
+    unidades.append(casilla);
+  }
+
+  const pie = el("div", "comp-pie");
+  if (c.rasgos?.length) pie.append(el("span", null, c.rasgos.map((r) => `${r.nombre} ${r.unidades}`).join(" · ")));
+  if (c.aumentos?.length) pie.append(el("span", "comp-aumentos", `Aumentos: ${c.aumentos.join(", ")}`));
+
+  li.append(cab, unidades, pie);
+  return li;
+}
+
+function pintarComps() {
+  const lista = $("comps-lista");
+  if (!compsDatos) {
+    lista.replaceChildren(el("li", "comps-aviso", "Cargando las comps del parche..."));
+    return;
+  }
+  if (compsDatos.error) {
+    lista.replaceChildren(el("li", "comps-aviso", compsDatos.error));
+    return;
+  }
+  const tier = $("comps-tier").value;
+  const carry = $("comps-carry").value;
+  const filtradas = (compsDatos.comps ?? []).filter(
+    (c) => (!tier || c.tier === tier) && (!carry || c.carry?.id === carry)
+  );
+  $("comps-sub").textContent = [
+    compsDatos.parche ? `Parche ${compsDatos.parche}` : null,
+    compsDatos.set ? `Set ${compsDatos.set}` : null,
+    compsDatos.partidas ? `${compsDatos.partidas} partidas de Challenger` : null,
+    compsDatos.calculado ? new Date(compsDatos.calculado).toLocaleDateString("es-MX") : null,
+  ].filter(Boolean).join(" · ");
+  lista.replaceChildren(
+    ...(filtradas.length ? filtradas.map(tarjetaComp) : [el("li", "comps-aviso", "No hay comps con ese filtro.")])
+  );
+}
+
+async function cargarComps() {
+  try {
+    const guardado = localStorage.getItem("grief-comps");
+    if (guardado && !compsDatos) {
+      compsDatos = JSON.parse(guardado);
+      pintarComps();
+    }
+  } catch {}
+  try {
+    const datos = await fetch(COMPS_URL).then((r) => r.json());
+    if (datos?.comps?.length) {
+      compsDatos = datos;
+      try {
+        localStorage.setItem("grief-comps", JSON.stringify(datos));
+      } catch {}
+      const carries = new Map();
+      for (const c of datos.comps) if (c.carry?.id) carries.set(c.carry.id, c.carry.nombre);
+      $("comps-carry").replaceChildren(
+        el("option", null, "Cualquiera"),
+        ...[...carries.entries()]
+          .sort((a, b) => a[1].localeCompare(b[1]))
+          .map(([id, nombre]) => {
+            const o = el("option", null, nombre);
+            o.value = id;
+            return o;
+          })
+      );
+    } else if (!compsDatos) {
+      compsDatos = { error: datos?.error ? `El servicio de comps no está listo: ${datos.error}.` : "Todavía no hay comps calculadas." };
+    }
+  } catch {
+    if (!compsDatos) compsDatos = { error: "No se pudo contactar con el servicio de comps." };
+  }
+  pintarComps();
+}
+
+function abrirComps() {
+  for (const id of ["vacio", "perfil", "equipos", "fase"]) $(id).hidden = true;
+  $("comps").hidden = false;
+  $("juego").textContent = "Teamfight Tactics · Comps del parche";
+  pintarComps();
+  cargarComps();
+}
+
 function pintar(estado) {
+  if (!$("comps").hidden) return; // con las comps abiertas, la partida no roba la vista
   $("estado").textContent = "";
   const hayPartida = estado.rows && estado.rows.length > 0;
   const hayPerfil = !hayPartida && !!estado.perfil;
@@ -645,6 +768,16 @@ $("menu-acerca").addEventListener("click", async () => {
     if (span) span.textContent = `v${version}`;
   } catch {}
 });
+$("menu-comps").addEventListener("click", () => {
+  cerrarMenu();
+  abrirComps();
+});
+$("comps-cerrar").addEventListener("click", () => {
+  $("comps").hidden = true;
+  if (ultimoEstado) pintar(ultimoEstado); // vuelve a la partida, al perfil o al vacio
+});
+$("comps-tier").addEventListener("change", pintarComps);
+$("comps-carry").addEventListener("change", pintarComps);
 $("menu-terminos").addEventListener("click", () => abrirModal("Términos y condiciones", "tpl-terminos"));
 $("modal-cerrar").addEventListener("click", () => { $("modal").hidden = true; });
 $("modal").addEventListener("click", (ev) => {
@@ -723,9 +856,14 @@ $("menu-actualizar").addEventListener("click", async () => {
   }
 });
 
+let ultimoEstado = null;
+
 function conectar() {
   const fuente = new EventSource("/events");
-  fuente.onmessage = (ev) => pintar(JSON.parse(ev.data));
+  fuente.onmessage = (ev) => {
+    ultimoEstado = JSON.parse(ev.data);
+    pintar(ultimoEstado);
+  };
   // EventSource reintenta solo la reconexion.
   fuente.onerror = () => {
     $("estado").textContent = "Sin conexión con el tracker. Reintentando...";

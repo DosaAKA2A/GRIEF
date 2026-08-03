@@ -21,6 +21,7 @@
   </header>
 
   <nav id="menu-panel" class="menu-panel" hidden aria-label="Menu de la app">
+    <button id="menu-comps" class="menu-item">Comps de TFT</button>
     <button id="menu-acerca" class="menu-item">Acerca de</button>
     <button id="menu-terminos" class="menu-item">Términos y condiciones</button>
     <button id="menu-actualizar" class="menu-item">Actualizar app</button>
@@ -106,6 +107,32 @@
         <h2 id="perfil-partidas-titulo">Últimas competitivas</h2>
         <ul id="perfil-lista"></ul>
       </div>
+    </section>
+
+    <!-- Comps de TFT del parche: se abre desde el menu -->
+    <section id="comps" class="comps" hidden>
+      <div class="comps-cab">
+        <div class="comps-titulos">
+          <h1>Comps de TFT</h1>
+          <span id="comps-sub" class="comps-sub"></span>
+        </div>
+        <label class="comps-filtro">
+          <small>Tier</small>
+          <select id="comps-tier">
+            <option value="">Todas</option>
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </label>
+        <label class="comps-filtro">
+          <small>Carry</small>
+          <select id="comps-carry"><option value="">Cualquiera</option></select>
+        </label>
+        <button id="comps-cerrar" class="comps-cerrar" type="button">Volver</button>
+      </div>
+      <ul id="comps-lista" class="comps-lista"></ul>
     </section>
 
     <section id="equipos" class="equipos" hidden>

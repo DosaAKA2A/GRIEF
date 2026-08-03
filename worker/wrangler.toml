@@ -1,0 +1,22 @@
+name = "grief-tft"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Region de la que se sacan las partidas de referencia.
+# PLATAFORMA es el servidor (na1, euw1, la1...) y RUTA su region de match-v1.
+[vars]
+PLATAFORMA = "na1"
+RUTA = "americas"
+JUGADORES = "40"      # cuantos challenger se miran
+PARTIDAS = "8"        # cuantas partidas recientes de cada uno
+
+# Cache de las comps ya calculadas. Crear con:
+#   npx wrangler kv namespace create COMPS
+# y pegar aqui el id que devuelva.
+[[kv_namespaces]]
+binding = "COMPS"
+id = "963d2be5ffa143c3bcdda6d65fcc3ab9"
+
+# Recalculo diario a las 6:00 UTC (madrugada en America, manana en Europa).
+[triggers]
+crons = ["0 6 * * *"]

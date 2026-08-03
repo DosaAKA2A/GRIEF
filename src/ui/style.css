@@ -564,6 +564,181 @@ body::before {
   color: var(--apagado);
 }
 
+/* ---- Comps de TFT: tier list del parche ---- */
+.comps {
+  width: 100%;
+  max-width: 72.5rem;
+  align-self: start;
+  display: grid;
+  gap: 0.85rem;
+  min-height: 0;
+}
+.comps-cab {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.75rem 1.2rem;
+  background: linear-gradient(120deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+.comps-titulos { flex: 1; min-width: 0; }
+.comps-titulos h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+.comps-sub {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+.comps-filtro { display: flex; flex-direction: column; gap: 0.25rem; }
+.comps-filtro small {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+.comps-filtro select {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--claro);
+  background: var(--fondo);
+  border: 1px solid var(--linea);
+  padding: 0.3rem 0.5rem;
+  min-width: 8rem;
+}
+.comps-cerrar {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--claro);
+  background: transparent;
+  border: 1px solid var(--linea);
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+}
+.comps-cerrar:hover { border-color: var(--hueso); }
+
+.comps-lista {
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+  overflow-y: auto;
+  max-height: 30rem;
+  padding-right: 0.3rem;
+}
+.comps-aviso {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--apagado);
+  padding: 1.2rem;
+  border: 1px dashed var(--linea);
+}
+.comp {
+  --tier: var(--apagado);
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid rgba(38, 52, 64, 0.9);
+  border-left: 3px solid var(--tier);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+.comp.tier-s { --tier: #e8c35c; }
+.comp.tier-a { --tier: #b18be8; }
+.comp.tier-b { --tier: #3fb7c9; }
+.comp.tier-c { --tier: #7a8894; }
+.comp-cab { display: flex; align-items: center; gap: 0.7rem; }
+.comp-tier {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--fondo);
+  background: var(--tier);
+  padding: 0.05rem 0.5rem;
+}
+.comp-nombre {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.comp-cifras { display: flex; align-items: baseline; gap: 0.35rem; }
+.comp-cifras i {
+  font-family: var(--display);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.6rem;
+}
+.comp-cifras small {
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+.comp-unidades { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.comp-unidad {
+  --coste: var(--apagado);
+  position: relative;
+  width: 3.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  cursor: help;
+}
+.comp-unidad img {
+  width: 3.4rem;
+  height: 3.4rem;
+  object-fit: cover;
+  border: 1px solid var(--coste);
+}
+.comp-unidad-nombre {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.02em;
+  color: var(--claro);
+  max-width: 3.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comp-estrellas {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  color: var(--fondo);
+  background: #e8c35c;
+  padding: 0 0.15rem;
+}
+.comp-pie {
+  display: flex;
+  gap: 1.2rem;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: var(--apagado);
+}
+.comp-aumentos { margin-left: auto; color: var(--tenue); }
+
 /* ---- Equipos ---- */
 .equipos {
   display: grid;
