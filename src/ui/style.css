@@ -33,13 +33,13 @@
 .plat, .menu-panel, .modal-caja, .marca-tag,
 .perfil-cab, .perfil-avatar, .perfil-tile, .partida, .comps-cab, .comp,
 .banda, .jugador, .pie-version, .pie-boton, .tip,
-.dota-cab, .dota-cab-foto, .dota-item {
+.dota-cab, .dota-cab-foto, .dota-item, .dota-deriva {
   position: relative;
 }
 .plat::after, .menu-panel::after, .modal-caja::after, .marca-tag::after,
 .perfil-cab::after, .perfil-avatar::after, .perfil-tile::after, .partida::after, .comps-cab::after, .comp::after,
 .banda::after, .jugador::after, .pie-version::after, .pie-boton::after, .tip::after,
-.dota-cab::after, .dota-cab-foto::after, .dota-item::after {
+.dota-cab::after, .dota-cab-foto::after, .dota-item::after, .dota-deriva::after {
   content: "";
   position: absolute;
   /* OJO con estos dos numeros: un elemento absoluto se posiciona contra la caja
@@ -1505,6 +1505,53 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 .dota-boton:hover { border-color: var(--hueso); color: var(--hueso); }
 .dota-boton--primario { color: var(--hueso); border-color: var(--apagado); }
 .dota-boton--primario:hover { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+
+/* Aviso de deriva: los heroes que se salieron del preset aplicado. Va en ambar
+   y no en rojo porque no es un error, es algo que tienes que mirar. */
+.dota-deriva {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  background: rgba(232, 195, 92, 0.07);
+  border: 1px solid rgba(232, 195, 92, 0.35);
+  border-left: 3px solid #e8c35c;
+  --corte: 8px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
+}
+.dota-deriva-texto { flex: 1; min-width: 0; display: grid; gap: 0.2rem; }
+.dota-deriva-titulo {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e8c35c;
+}
+.dota-deriva-lista {
+  font-family: var(--sans);
+  font-size: 0.76rem;
+  color: var(--claro);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dota-deriva-acciones { display: flex; align-items: center; gap: 0.5rem; flex: 0 0 auto; }
+
+/* Detalle de las diferencias, dentro del modal */
+.deriva-heroe {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--linea);
+}
+.deriva-heroe b { font-family: var(--sans); font-size: 0.82rem; color: var(--hueso); }
+.deriva-cambio {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--apagado);
+}
 
 .dota-aviso {
   font-family: var(--mono);

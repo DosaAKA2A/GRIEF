@@ -169,6 +169,65 @@ export function capasDelLst(texto) {
   };
 }
 
+// Teclas de cada heroe, ranura por ranura. Se queda solo con las ranuras de
+// habilidad: los talentos y demas no son lo que uno configura a mano.
+const RANURAS = [
+  "AbilityPrimary1",
+  "AbilityPrimary2",
+  "AbilityPrimary3",
+  "AbilityUltimate",
+  "AbilitySecondary1",
+  "AbilitySecondary2",
+];
+
+export function teclasPorHeroe(texto) {
+  const mapa = new Map();
+  let heroe = null;
+  let campo = null;
+  for (const l of texto.split(/\r?\n/)) {
+    const h = l.match(/^\t\t"npc_dota_(?:hero_)?([a-z0-9_]+)"\s*$/);
+    if (h) {
+      heroe = h[1];
+      mapa.set(heroe, {});
+      campo = null;
+      continue;
+    }
+    if (!heroe) continue;
+    const c = l.match(/^\t\t\t"([A-Za-z0-9_]+)"\s*$/);
+    if (c) {
+      campo = c[1];
+      continue;
+    }
+    const k = l.match(/^\t\t\t\t"Key"\s+"([^"]*)"\s*$/);
+    if (k && campo && RANURAS.includes(campo)) mapa.get(heroe)[campo] = k[1];
+  }
+  return mapa;
+}
+
+// Que heroes se han salido de lo que guardaste. Dota reescribe este archivo por
+// su cuenta (parches que añaden ranuras, cierres a la fuerza, la nube) y lo
+// normal es enterarse semanas despues, dentro de una partida. Esto lo compara
+// contra tu preset y lo dice al abrir.
+export function compararConPreset(vivo, guardado) {
+  const a = teclasPorHeroe(vivo);
+  const b = teclasPorHeroe(guardado);
+  const distintos = [];
+  for (const [heroe, teclasB] of b) {
+    const teclasA = a.get(heroe);
+    if (!teclasA) {
+      distintos.push({ heroe, motivo: "ya no esta" });
+      continue;
+    }
+    const cambios = RANURAS.filter((r) => (teclasA[r] ?? "") !== (teclasB[r] ?? "")).map((r) => ({
+      ranura: r.replace("Ability", ""),
+      ahora: teclasA[r] ?? "(sin tecla)",
+      guardado: teclasB[r] ?? "(sin tecla)",
+    }));
+    if (cambios.length) distintos.push({ heroe, cambios });
+  }
+  return { total: b.size, distintos };
+}
+
 // Enciende "UseHeroBindings". Sin esto Dota ignora las teclas por heroe y usa
 // el layout global, aunque el bloque "Units" este lleno: es el interruptor
 // maestro de la pestaña HEROES. Se toca esa linea y nada mas.
@@ -312,6 +371,22 @@ async function personaDe(dirUsuario) {
   }
 }
 
+// La vigilancia arranca sola en cuanto aplicas un preset a una cuenta: ese
+// preset pasa a ser la referencia. Sin preset aplicado no hay contra que
+// comparar y no se avisa de nada.
+async function derivaDe(lst, aplicado) {
+  if (!aplicado) return null;
+  const guardado = join(DIR_PERFILES, String(aplicado), ...LST.split("/"));
+  try {
+    const [a, b] = await Promise.all([readFile(lst, "utf8"), readFile(guardado, "utf8")]);
+    const { total, distintos } = compararConPreset(a, b);
+    const meta = JSON.parse(await readFile(join(DIR_PERFILES, String(aplicado), "perfil.json"), "utf8"));
+    return { perfil: String(aplicado), nombre: meta?.nombre ?? String(aplicado), total, distintos };
+  } catch {
+    return null; // el preset de referencia ya no esta, o el .lst no se pudo leer
+  }
+}
+
 export async function listarCuentas() {
   const steam = await steamPathRegistro();
   if (!steam) return [];
@@ -334,6 +409,7 @@ export async function listarCuentas() {
     try {
       tocado = (await stat(lst)).mtimeMs;
     } catch {}
+    const aplicado = estado.aplicado?.[d.name] ?? null;
     cuentas.push({
       id: d.name,
       persona: await personaDe(join(userdata, d.name)),
@@ -342,7 +418,8 @@ export async function listarCuentas() {
       tocado,
       capas: await capasDe(lst),
       activa: d.name === activa,
-      aplicado: estado.aplicado?.[d.name] ?? null,
+      aplicado,
+      deriva: await derivaDe(lst, aplicado),
       puedeDeshacer: existsSync(join(DIR_RESPALDOS, d.name)),
     });
   }

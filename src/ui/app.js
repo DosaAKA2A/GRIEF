@@ -766,6 +766,50 @@ function abrirPanelCuentas() {
   $("dota-cambiar").setAttribute("aria-expanded", "true");
 }
 
+// El aviso de deriva: que heroes ya no coinciden con el preset aplicado. Dota
+// reescribe el archivo por su cuenta y lo normal es enterarse en mitad de una
+// partida, semanas despues; esto lo dice al abrir.
+function pintarDeriva() {
+  const caja = $("dota-deriva");
+  const d = cuentaElegida()?.deriva;
+  const n = d?.distintos?.length ?? 0;
+  if (!n) {
+    caja.hidden = true;
+    return;
+  }
+  $("dota-deriva-titulo").textContent =
+    `${n} ${n === 1 ? "héroe ya no coincide" : "héroes ya no coinciden"} con "${d.nombre}"`;
+  const nombres = d.distintos.slice(0, 6).map((x) => bonito(x.heroe));
+  const resto = n - nombres.length;
+  $("dota-deriva-lista").textContent = nombres.join(", ") + (resto > 0 ? ` y ${resto} más` : "");
+  $("dota-deriva-restaurar").disabled = dotaOcupado;
+  $("dota-deriva-ver").disabled = dotaOcupado;
+  caja.hidden = false;
+}
+
+const bonito = (id) => id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+function verDeriva() {
+  const d = cuentaElegida()?.deriva;
+  if (!d?.distintos?.length) return;
+  const cuerpo = document.createElement("div");
+  for (const x of d.distintos) {
+    const bloque = el("div", "deriva-heroe");
+    bloque.append(el("b", null, bonito(x.heroe)));
+    if (x.motivo) {
+      bloque.append(el("span", "deriva-cambio", x.motivo));
+    } else {
+      for (const c of x.cambios) {
+        bloque.append(
+          el("span", "deriva-cambio", `${c.ranura}:  ahora ${c.ahora}  —  guardado ${c.guardado}`)
+        );
+      }
+    }
+    cuerpo.append(bloque);
+  }
+  abrirModal(`Diferencias con "${d.nombre}"`, cuerpo);
+}
+
 function pintarDota() {
   const lista = $("dota-lista");
   if (!dotaDatos) {
@@ -791,6 +835,8 @@ function pintarDota() {
   const deshacer = $("dota-deshacer");
   deshacer.hidden = !cuenta?.puedeDeshacer;
   deshacer.disabled = dotaOcupado;
+
+  pintarDeriva();
 
   if (dotaDatos.procesos?.dota) {
     dotaAviso("Cierra Dota 2 para poder cambiar de perfil: al salir reescribe los controles.", "ojo");
@@ -1172,9 +1218,15 @@ if (window.grief?.capturar) {
   });
 }
 
-function abrirModal(titulo, tplId) {
+// Acepta el id de una <template> (acerca de, terminos) o un nodo ya montado,
+// para los contenidos que se arman al vuelo.
+function abrirModal(titulo, contenido) {
   $("modal-titulo").textContent = titulo;
-  $("modal-cuerpo").replaceChildren(document.getElementById(tplId).content.cloneNode(true));
+  $("modal-cuerpo").replaceChildren(
+    typeof contenido === "string"
+      ? document.getElementById(contenido).content.cloneNode(true)
+      : contenido
+  );
   $("modal").hidden = false;
   cerrarMenu();
 }
@@ -1209,6 +1261,13 @@ $("plat-steam").addEventListener("click", () => {
   cerrarMenu();
   abrirDota();
 });
+$("dota-deriva-ver").addEventListener("click", verDeriva);
+$("dota-deriva-restaurar").addEventListener("click", () => {
+  const d = cuentaElegida()?.deriva;
+  const p = dotaDatos?.perfiles?.find((x) => x.id === d?.perfil);
+  if (p) aplicarPerfilDota(p);
+});
+
 $("dota-cambiar").addEventListener("click", (ev) => {
   ev.stopPropagation(); // si no, el listener de document lo cierra al vuelo
   if (panelCuentas.hidden) abrirPanelCuentas();
