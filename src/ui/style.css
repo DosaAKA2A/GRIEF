@@ -19,6 +19,40 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ---- Esquina cortada, CERRADA ----
+   El corte inferior derecho es de la casa, pero clip-path recorta tambien el
+   borde y esa diagonal se queda sin linea: el recuadro se ve abierto por ahi.
+   La diagonal se pinta como un ::after girado 45 grados sobre la propia
+   esquina. Va a 2px y centrada en el filo justo porque el clip-path se come la
+   mitad de fuera; lo que queda es 1px, igual que los otros tres lados.
+   El color se hereda con border-color:inherit, asi sigue solo a los :hover que
+   cambian el borde del elemento (menu, plataformas) sin repetir el color aqui.
+   El tamaño sale de --corte, que es el mismo que usa el clip-path: no pueden
+   descuadrarse. Este bloque va arriba del todo para que las reglas de despues
+   puedan seguir poniendo su propio position (menu-panel, tip...). */
+.menu-boton, .plat, .menu-panel, .modal-caja, .marca-tag,
+.perfil-cab, .perfil-avatar, .perfil-tile, .partida, .comps-cab, .comp,
+.banda, .jugador, .pie-version, .pie-boton, .tip,
+.dota-cab, .dota-item {
+  position: relative;
+}
+.menu-boton::after, .plat::after, .menu-panel::after, .modal-caja::after, .marca-tag::after,
+.perfil-cab::after, .perfil-avatar::after, .perfil-tile::after, .partida::after, .comps-cab::after, .comp::after,
+.banda::after, .jugador::after, .pie-version::after, .pie-boton::after, .tip::after,
+.dota-cab::after, .dota-item::after {
+  content: "";
+  position: absolute;
+  left: calc(100% - var(--corte));
+  bottom: 0;
+  width: calc(var(--corte) * 1.4143); /* la diagonal de un cuadrado de --corte */
+  height: 0;
+  border-bottom: 2px solid;
+  border-color: inherit;
+  transform-origin: 0 50%;
+  transform: rotate(-45deg);
+  pointer-events: none;
+}
+
 /* La UI es un lienzo de proporcion fija: todo esta en rem y la raiz escala
    con el ancho de la ventana (16px a 1150 de ancho). Asi la app se ve
    identica en cualquier monitor, sin espacios muertos ni recortes. */
@@ -83,7 +117,8 @@ body::before {
   border: 1px solid var(--linea);
   color: var(--apagado);
   cursor: pointer;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  --corte: 6px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   transition: color 0.15s, border-color 0.15s;
 }
 .menu-boton:hover,
@@ -95,6 +130,39 @@ body::before {
 /* Plataformas: conmutador a la derecha de la barra. Riot son los trackers,
    Steam los controles de Dota. Misma altura que el boton de menu para no
    mover el alto de la barra (el lienzo mide 1134/666 y no perdona). */
+/* Quien esta jugando: la cuenta de Steam con la sesion abierta. Solo aparece en
+   la vista de Steam, que es donde significa algo. Cabe en el alto que ya tenia
+   la barra (2rem) para no descuadrar el lienzo. */
+.steam-sesion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 0.15rem;
+}
+.steam-sesion-foto {
+  width: 1.6rem;
+  height: 1.6rem;
+  object-fit: cover;
+  border: 1px solid var(--linea);
+}
+.steam-sesion-textos { display: flex; flex-direction: column; line-height: 1.25; }
+.steam-sesion-textos small {
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+.steam-sesion-nick {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--hueso);
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .plataformas {
   display: flex;
   gap: 0.4rem;
@@ -111,7 +179,8 @@ body::before {
   border: 1px solid var(--linea);
   color: var(--apagado);
   cursor: pointer;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  --corte: 6px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .plat svg { width: 1.05rem; height: 1.05rem; display: block; }
@@ -140,7 +209,8 @@ body::before {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   padding: 0.4rem 0;
 }
 .menu-item {
@@ -189,7 +259,8 @@ body::before {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+  --corte: 16px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .modal-cabecera {
   display: flex;
@@ -257,7 +328,8 @@ body::before {
   color: var(--rojo);
   border: 1px solid rgba(255, 70, 85, 0.55);
   padding: 0.14rem 0.42rem;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+  --corte: 5px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .marca .marca-sub { margin-left: 0.35rem; }
 .marca .marca-sub {
@@ -358,16 +430,25 @@ body::before {
   padding: 0.9rem 1.4rem;
   background: linear-gradient(120deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 /* Avatar del perfil (icono de invocador) con el nivel en la esquina */
-.perfil-avatar { position: relative; flex: 0 0 4.4rem; }
+/* El avatar es un <img>, y los elementos reemplazados no admiten ::after: la
+   diagonal que cierra su esquina la pinta el contenedor, que mide lo mismo. */
+.perfil-avatar {
+  position: relative;
+  flex: 0 0 4.4rem;
+  --corte: 10px;
+}
+.perfil-avatar::after { border-color: var(--linea); }
 .perfil-avatar img {
   width: 4.4rem;
   height: 4.4rem;
   object-fit: cover;
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  --corte: 10px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .perfil-avatar-nivel {
   position: absolute;
@@ -452,7 +533,8 @@ body::before {
   padding: 0.55rem 0.4rem;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  --corte: 8px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .perfil-tile b {
   font-family: var(--display);
@@ -496,7 +578,8 @@ body::before {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid rgba(38, 52, 64, 0.9);
   border-left: 3px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  --corte: 10px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .partida.ganada { border-left-color: var(--teal); }
 .partida.perdida { border-left-color: var(--rojo); }
@@ -599,7 +682,8 @@ body::before {
   padding: 0.75rem 1.2rem;
   background: linear-gradient(120deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .comps-titulos { flex: 1; min-width: 0; }
 .comps-titulos h1 {
@@ -670,7 +754,8 @@ body::before {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid rgba(38, 52, 64, 0.9);
   border-left: 3px solid var(--tier);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+  --corte: 10px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .comp.tier-s { --tier: #e8c35c; }
 .comp.tier-a { --tier: #b18be8; }
@@ -831,7 +916,8 @@ body::before {
   background-size: cover;
   background-position: center 35%;
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .banda-textos { display: flex; align-items: baseline; gap: 1.1rem; flex-wrap: wrap; }
 .banda-titulo {
@@ -874,7 +960,8 @@ body::before {
   min-height: 3.9rem;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid rgba(38, 52, 64, 0.9);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   transition: border-color 0.18s ease;
   animation: aparecer 0.3s ease backwards;
 }
@@ -1110,7 +1197,8 @@ body::before {
   color: var(--rojo);
   border: 1px solid var(--rojo);
   padding: 0.16rem 0.5rem;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+  --corte: 5px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   transition: background 0.15s, color 0.15s;
 }
 .pie-version--nueva {
@@ -1138,7 +1226,8 @@ body::before {
   border: 1px solid var(--linea);
   color: var(--apagado);
   cursor: pointer;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  --corte: 6px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   transition: color 0.15s, border-color 0.15s;
 }
 .pie-boton svg { position: relative; z-index: 1; }
@@ -1160,16 +1249,23 @@ body::before {
 }
 
 /* Boton destacado (captura): relleno con el degradado de GRIEF */
+/* La accion principal del pie. El icono va en blanco y con el trazo mas grueso
+   que el resto: sobre el degradado rojo el color de fondo se hundia y no se
+   leia de un vistazo. */
 .pie-boton--destacado {
   background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
   border-color: transparent;
-  color: var(--fondo);
+  color: #fff;
+}
+.pie-boton--destacado svg {
+  stroke-width: 1.85;
+  filter: drop-shadow(0 1px 2px rgba(120, 12, 20, 0.45));
 }
 .pie-boton--destacado::before {
   background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
 }
 .pie-boton--destacado:hover {
-  color: var(--fondo);
+  color: #fff;
   border-color: transparent;
   filter: brightness(1.12);
 }
@@ -1188,7 +1284,8 @@ body::before {
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--apagado);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  --corte: 8px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
   font-family: var(--mono);
   font-size: 0.64rem;
   letter-spacing: 0.04em;
@@ -1224,7 +1321,8 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   padding: 0.75rem 1.2rem;
   background: linear-gradient(120deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
 }
 .dota-titulos { flex: 1; min-width: 0; }
 .dota-titulos h1 {
@@ -1313,13 +1411,42 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 }
 .dota-item {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1.2rem;
   padding: 0.85rem 1rem;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  --corte: 8px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
+}
+/* Sin foto (preset viejo de una cuenta que ya no esta) la ficha vuelve a dos
+   columnas y no deja un hueco vacio donde iba la imagen. */
+.dota-item:not(:has(.dota-item-foto)) { grid-template-columns: 1fr auto; }
+/* La foto de la cuenta de origen. El envoltorio carga con la esquina cortada
+   porque un <img> no admite pseudoelementos. */
+.dota-item-foto {
+  position: relative;
+  display: block;
+  width: 2.9rem;
+  height: 2.9rem;
+  --corte: 7px;
+  border: 1px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
+}
+.dota-item-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dota-item-foto::after {
+  content: "";
+  position: absolute;
+  left: calc(100% - var(--corte));
+  bottom: 0;
+  width: calc(var(--corte) * 1.4143);
+  height: 0;
+  border-bottom: 2px solid;
+  border-color: inherit;
+  transform-origin: 0 50%;
+  transform: rotate(-45deg);
+  pointer-events: none;
 }
 .dota-item-info { display: grid; gap: 0.28rem; min-width: 0; }
 .dota-item-cab { display: flex; align-items: baseline; gap: 0.6rem; }

@@ -603,6 +603,18 @@ function tarjetaPerfilDota(p) {
   const enUso = cuenta && cuenta.aplicado === p.id;
   const li = el("li", "dota-item" + (enUso ? " dota-item--activo" : ""));
 
+  // La foto de la cuenta de la que se copio: es lo que hace reconocible al
+  // preset sin leer nada. El envoltorio existe porque un <img> no admite el
+  // ::after que cierra la esquina cortada.
+  if (p.avatar) {
+    const foto = el("span", "dota-item-foto");
+    const img = document.createElement("img");
+    img.src = `/dota/avatar/perfil/${encodeURIComponent(p.id)}`;
+    img.alt = "";
+    foto.append(img);
+    li.append(foto);
+  }
+
   // Izquierda: que es este preset. Derecha: la accion, una sola y destacada.
   const info = el("div", "dota-item-info");
   const cab = el("div", "dota-item-cab");
@@ -640,6 +652,23 @@ function tarjetaPerfilDota(p) {
   return li;
 }
 
+// La sesion de Steam abierta, en la barra de arriba. Solo tiene sentido en la
+// vista de Steam: en los trackers de Riot seria ruido, asi que se esconde.
+function pintarSesionSteam() {
+  const caja = $("steam-sesion");
+  const activa = dotaDatos?.cuentas?.find((c) => c.activa);
+  const enSteam = !$("dota").hidden;
+  if (!enSteam || !activa) {
+    caja.hidden = true;
+    return;
+  }
+  $("steam-sesion-nick").textContent = activa.persona ?? activa.id;
+  const foto = $("steam-sesion-foto");
+  foto.hidden = !activa.avatar;
+  if (activa.avatar) foto.src = `/dota/avatar/cuenta/${encodeURIComponent(activa.id)}`;
+  caja.hidden = false;
+}
+
 function pintarDota() {
   const lista = $("dota-lista");
   if (!dotaDatos) {
@@ -664,6 +693,8 @@ function pintarDota() {
   );
   // Por defecto, la cuenta con la que Steam esta abierto (viene primera).
   if (elegida && dotaDatos.cuentas.some((c) => c.id === elegida)) select.value = elegida;
+
+  pintarSesionSteam();
 
   const cuenta = cuentaElegida();
   $("dota-sub").textContent = cuenta
@@ -804,6 +835,7 @@ function marcarPlataforma(cual) {
 function abrirRiot() {
   $("dota").hidden = true;
   marcarPlataforma("riot");
+  $("steam-sesion").hidden = true; // la sesion de Steam no pinta nada aqui
   // Vuelve a lo que hubiera: la partida en curso, tu perfil o la pantalla vacia.
   if (ultimoEstado) pintar(ultimoEstado);
 }

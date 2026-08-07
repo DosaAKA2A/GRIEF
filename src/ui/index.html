@@ -17,6 +17,14 @@
       <i class="fase-punto"></i><span id="fase-texto"></span>
     </div>
     <div id="estado" class="estado">Conectando...</div>
+    <!-- Que cuenta de Steam esta abierta ahora mismo; solo en la vista de Steam -->
+    <div id="steam-sesion" class="steam-sesion" hidden>
+      <img id="steam-sesion-foto" class="steam-sesion-foto" alt="">
+      <span class="steam-sesion-textos">
+        <small>Sesión de Steam</small>
+        <span id="steam-sesion-nick" class="steam-sesion-nick"></span>
+      </span>
+    </div>
     <!-- Conmutador de plataforma: Riot son los trackers, Steam los controles de Dota -->
     <div class="plataformas" role="group" aria-label="Plataforma">
       <button id="plat-riot" class="plat" type="button" aria-pressed="true" aria-label="Riot" data-tip="Riot · Valorant, League of Legends y TFT">

@@ -258,6 +258,51 @@ async function capasDe(ruta) {
 
 // ---- Cuentas ----
 
+// Steam guarda la foto de cada cuenta en config\avatarcache\<steamid64>.png,
+// pero las carpetas de userdata van por steamid3 (el "accountid"). El salto
+// entre los dos es una suma fija; con BigInt porque no cabe en un Number.
+const BASE_STEAMID64 = 76561197960265728n;
+
+function steamId64(id) {
+  try {
+    return String(BigInt(id) + BASE_STEAMID64);
+  } catch {
+    return null;
+  }
+}
+
+async function avatarDeCuenta(id) {
+  const steam = await steamPathRegistro();
+  const id64 = steamId64(id);
+  if (!steam || !id64) return null;
+  const ruta = join(steam, "config", "avatarcache", `${id64}.png`);
+  return existsSync(ruta) ? ruta : null;
+}
+
+// La foto de un preset se guarda DENTRO del preset: si luego cambias el avatar
+// de esa cuenta de Steam, o quitas la cuenta de esta maquina, el preset sigue
+// enseñando la foto con la que se guardo.
+export async function avatarRuta({ tipo, id }) {
+  if (tipo === "cuenta") return avatarDeCuenta(id);
+  if (tipo === "perfil") {
+    const ruta = join(DIR_PERFILES, String(id), "avatar.png");
+    if (existsSync(ruta)) return ruta;
+    // Presets guardados antes de que existieran las fotos: se cae a la de la
+    // cuenta de origen, si esa cuenta sigue en esta maquina.
+    return avatarDeCuenta(await cuentaDePerfil(id));
+  }
+  return null;
+}
+
+async function cuentaDePerfil(id) {
+  try {
+    const meta = JSON.parse(await readFile(join(DIR_PERFILES, String(id), "perfil.json"), "utf8"));
+    return meta?.cuenta ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function personaDe(dirUsuario) {
   try {
     const vdf = await readFile(join(dirUsuario, "config", "localconfig.vdf"), "utf8");
@@ -292,6 +337,7 @@ export async function listarCuentas() {
     cuentas.push({
       id: d.name,
       persona: await personaDe(join(userdata, d.name)),
+      avatar: !!(await avatarDeCuenta(d.name)),
       appDir,
       tocado,
       capas: await capasDe(lst),
@@ -323,7 +369,12 @@ export async function listarPerfiles() {
       meta = JSON.parse(await readFile(join(DIR_PERFILES, d.name, "perfil.json"), "utf8"));
     } catch {}
     if (!meta?.nombre) continue; // carpeta suelta: no es un preset
-    perfiles.push({ id: d.name, ...meta, capas: await capasDe(join(DIR_PERFILES, d.name, ...LST.split("/"))) });
+    perfiles.push({
+      id: d.name,
+      ...meta,
+      avatar: !!(await avatarRuta({ tipo: "perfil", id: d.name })),
+      capas: await capasDe(join(DIR_PERFILES, d.name, ...LST.split("/"))),
+    });
   }
   perfiles.sort((a, b) => String(b.guardado ?? "").localeCompare(String(a.guardado ?? "")));
   return perfiles;
@@ -344,6 +395,10 @@ export async function guardarPerfil({ cuenta, nombre }) {
   const destino = join(DIR_PERFILES, id);
   await mkdir(destino, { recursive: true });
   const archivos = await copiarLote(origen.appDir, destino);
+  // La foto de la cuenta de origen se copia al preset: es lo que lo hace
+  // reconocible de un vistazo en la lista.
+  const avatar = await avatarDeCuenta(origen.id);
+  if (avatar) await copyFile(avatar, join(destino, "avatar.png")).catch(() => {});
   const meta = {
     nombre: String(nombre).trim(),
     guardado: new Date().toISOString(),

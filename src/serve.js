@@ -3,6 +3,7 @@
 // (CLI) y la app de escritorio (electron/main.js).
 import http from "node:http";
 import { readFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MultiTracker } from "./games.js";
@@ -77,6 +78,21 @@ export function startServer({ port = 4327 } = {}) {
     const path = req.url.split("?")[0];
     // Perfiles de controles de Dota 2: leen y escriben en el arbol de Steam de
     // esta computadora, por eso viven aqui y no en la UI.
+    // Fotos de perfil de Steam: las de una cuenta salen del avatarcache de
+    // Steam; las de un preset, de dentro del propio preset. Van aparte del
+    // resto de /dota/ porque devuelven PNG, no JSON.
+    if (path.startsWith("/dota/avatar/")) {
+      const [, , , tipo, id] = path.split("/");
+      const ruta = await dota.avatarRuta({ tipo, id: decodeURIComponent(id ?? "") }).catch(() => null);
+      if (!ruta) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-cache" });
+      createReadStream(ruta).pipe(res);
+      return;
+    }
     if (path.startsWith("/dota/")) {
       const accion = path.slice("/dota/".length);
       try {
