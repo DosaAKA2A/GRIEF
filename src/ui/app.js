@@ -618,7 +618,25 @@ function tarjetaPerfilDota(p) {
   // Izquierda: que es este preset. Derecha: la accion, una sola y destacada.
   const info = el("div", "dota-item-info");
   const cab = el("div", "dota-item-cab");
-  cab.append(el("span", "dota-item-nombre", p.nombre ?? p.id));
+  // El nombre se edita donde se lee: un input que parece texto hasta que lo
+  // tocas. Se guarda al salir del campo o con Enter; Escape deja lo que habia.
+  const nombre = document.createElement("input");
+  nombre.className = "dota-item-nombre";
+  nombre.type = "text";
+  nombre.maxLength = 48;
+  nombre.value = p.nombre ?? p.id;
+  nombre.setAttribute("aria-label", "Nombre del preset");
+  nombre.dataset.tip = "Toca para cambiarle el nombre";
+  nombre.disabled = dotaOcupado;
+  nombre.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") nombre.blur();
+    if (ev.key === "Escape") {
+      nombre.value = p.nombre ?? p.id;
+      nombre.blur();
+    }
+  });
+  nombre.addEventListener("blur", () => renombrarPerfilDota(p, nombre));
+  cab.append(nombre);
   if (enUso) cab.append(el("span", "dota-item-etiqueta", "En uso"));
   info.append(cab);
 
@@ -634,13 +652,12 @@ function tarjetaPerfilDota(p) {
   if (heroes) info.append(el("span", "dota-item-heroes", heroes));
 
   const acciones = el("div", "dota-item-acciones");
-  const aplicar = el(
-    "button",
-    "dota-boton dota-boton--usar",
-    enUso ? "Volver a aplicar" : cuenta ? `Usar en ${cuenta.persona ?? cuenta.id}` : "Usar"
-  );
+  // Texto fijo: a que cuenta se escribe ya lo dice el selector de arriba y la
+  // sesion de la barra, y ahi cabe entero sin recortar.
+  const aplicar = el("button", "dota-boton dota-boton--usar", "Usar preset");
   aplicar.type = "button";
   aplicar.disabled = dotaOcupado || !cuenta;
+  if (cuenta) aplicar.dataset.tip = `Escribe estos controles en ${cuenta.persona ?? cuenta.id}`;
   aplicar.addEventListener("click", () => aplicarPerfilDota(p));
   const borrar = el("button", "dota-boton dota-boton--tenue", "Borrar preset");
   borrar.type = "button";
@@ -776,6 +793,28 @@ function guardarPerfilDota() {
       dotaAviso(err.message, "error");
     }
   });
+}
+
+// Renombrar no reordena ni repinta la lista: la ficha ya muestra lo que
+// escribiste, y repintar aqui te quitaria el foco de golpe.
+async function renombrarPerfilDota(p, campo) {
+  const nuevo = campo.value.trim();
+  const viejo = p.nombre ?? p.id;
+  if (!nuevo || nuevo === viejo) {
+    campo.value = viejo; // vacio o sin cambios: se queda como estaba
+    return;
+  }
+  try {
+    const r = await accionDota("/dota/renombrar", { perfil: p.id, nombre: nuevo });
+    p.nombre = r.nombre;
+    const enDatos = dotaDatos?.perfiles?.find((x) => x.id === p.id);
+    if (enDatos) enDatos.nombre = r.nombre;
+    campo.value = r.nombre;
+    dotaAviso(`Ahora se llama "${r.nombre}".`, "ok");
+  } catch (err) {
+    campo.value = viejo;
+    dotaAviso(err.message, "error");
+  }
 }
 
 function aplicarPerfilDota(p) {

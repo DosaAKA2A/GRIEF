@@ -105,6 +105,8 @@ export function startServer({ port = 4327 } = {}) {
           salida = await dota.guardarPerfil(await leerJson(req));
         } else if (accion === "aplicar") {
           salida = await dota.aplicarPerfil(await leerJson(req));
+        } else if (accion === "renombrar") {
+          salida = await dota.renombrarPerfil(await leerJson(req));
         } else if (accion === "borrar") {
           salida = await dota.borrarPerfil(await leerJson(req));
         } else if (accion === "deshacer") {

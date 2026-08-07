@@ -30,22 +30,30 @@
    El tamaño sale de --corte, que es el mismo que usa el clip-path: no pueden
    descuadrarse. Este bloque va arriba del todo para que las reglas de despues
    puedan seguir poniendo su propio position (menu-panel, tip...). */
-.menu-boton, .plat, .menu-panel, .modal-caja, .marca-tag,
+.plat, .menu-panel, .modal-caja, .marca-tag,
 .perfil-cab, .perfil-avatar, .perfil-tile, .partida, .comps-cab, .comp,
 .banda, .jugador, .pie-version, .pie-boton, .tip,
 .dota-cab, .dota-item {
   position: relative;
 }
-.menu-boton::after, .plat::after, .menu-panel::after, .modal-caja::after, .marca-tag::after,
+.plat::after, .menu-panel::after, .modal-caja::after, .marca-tag::after,
 .perfil-cab::after, .perfil-avatar::after, .perfil-tile::after, .partida::after, .comps-cab::after, .comp::after,
 .banda::after, .jugador::after, .pie-version::after, .pie-boton::after, .tip::after,
 .dota-cab::after, .dota-item::after {
   content: "";
   position: absolute;
-  left: calc(100% - var(--corte));
-  bottom: 0;
+  /* OJO con estos dos numeros: un elemento absoluto se posiciona contra la caja
+     de PADDING, que va 1px por dentro del borde. Sin corregirlo la diagonal
+     cae desviada y el corte se ve mal cerrado. Con el +1px y el -2px el centro
+     de la linea queda justo sobre el filo del clip-path; la mitad de fuera la
+     recorta el propio clip y lo que queda es 1px, como los otros tres lados. */
+  left: calc(100% - var(--corte) + 1px);
+  bottom: -2px;
   width: calc(var(--corte) * 1.4143); /* la diagonal de un cuadrado de --corte */
   height: 0;
+  /* 2px y no menos: una diagonal a 45 grados siempre se reparte entre dos
+     pixeles, y por debajo de esto se queda en un gris translucido que no pega
+     con el 1px nitido de los otros tres lados (probado a 1.6px: desaparece). */
   border-bottom: 2px solid;
   border-color: inherit;
   transform-origin: 0 50%;
@@ -117,8 +125,7 @@ body::before {
   border: 1px solid var(--linea);
   color: var(--apagado);
   cursor: pointer;
-  --corte: 6px;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
+  /* Este va CUADRADO, sin corte: decision del usuario. */
   transition: color 0.15s, border-color 0.15s;
 }
 .menu-boton:hover,
@@ -1450,12 +1457,32 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 }
 .dota-item-info { display: grid; gap: 0.28rem; min-width: 0; }
 .dota-item-cab { display: flex; align-items: baseline; gap: 0.6rem; }
+/* El nombre es un input pero tiene que leerse como el titulo que era: sin caja
+   ni fondo hasta que lo tocas. Solo al pasar por encima aparece un subrayado
+   que avisa de que se puede escribir ahi. */
 .dota-item-nombre {
   font-family: var(--display);
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--hueso);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 0 0 1px;
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+  transition: border-color 0.12s, color 0.12s;
 }
+.dota-item-nombre:hover:not(:disabled) { border-bottom-color: var(--linea); cursor: text; }
+.dota-item-nombre:focus {
+  outline: none;
+  border-bottom-color: var(--rojo);
+}
+.dota-item-nombre:disabled { color: var(--apagado); }
+/* El nombre manda en el ancho de su fila; la etiqueta "En uso" no se encoge. */
+.dota-item-cab > .dota-item-nombre { flex: 1 1 auto; }
+.dota-item-cab > .dota-item-etiqueta { flex: 0 0 auto; }
 .dota-item-etiqueta {
   font-family: var(--mono);
   font-size: 0.52rem;

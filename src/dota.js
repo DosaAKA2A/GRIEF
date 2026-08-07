@@ -410,6 +410,20 @@ export async function guardarPerfil({ cuenta, nombre }) {
   return { id, ...meta, capas: origen.capas };
 }
 
+// Renombrar toca SOLO el nombre que se lee: la carpeta se queda como esta. Si
+// se renombrara tambien la carpeta habria que rehacer estado.json (que apunta
+// por id) y el preset dejaria de figurar como "en uso".
+export async function renombrarPerfil({ perfil, nombre }) {
+  const dir = join(DIR_PERFILES, String(perfil));
+  const meta = JSON.parse(await readFile(join(dir, "perfil.json"), "utf8").catch(() => "null"));
+  if (!meta?.nombre) throw new Error("Ese preset ya no existe.");
+  const limpio = String(nombre ?? "").trim();
+  if (!limpio) throw new Error("Ponle un nombre al preset.");
+  meta.nombre = limpio;
+  await writeFile(join(dir, "perfil.json"), JSON.stringify(meta, null, 2), "utf8");
+  return { id: String(perfil), ...meta };
+}
+
 export async function borrarPerfil({ perfil }) {
   const dir = join(DIR_PERFILES, String(perfil));
   if (!existsSync(join(dir, "perfil.json"))) throw new Error("Ese perfil ya no existe.");
