@@ -91,6 +91,8 @@ export function startServer({ port = 4327 } = {}) {
           salida = await dota.aplicarPerfil(await leerJson(req));
         } else if (accion === "borrar") {
           salida = await dota.borrarPerfil(await leerJson(req));
+        } else if (accion === "reiniciar-steam") {
+          salida = await dota.reiniciarSteam();
         } else {
           res.writeHead(404, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "No existe" }));

@@ -49,6 +49,8 @@ npm run dist        # construye instalador NSIS + exe portable en dist/
 7. `electron/main.js` — la app de escritorio: misma UI en ventana propia.
 8. `src/dota.js` — perfiles de controles de Dota 2. Dota guarda los controles fuera del juego, en `Steam\userdata\<steamid3>\570\` (`remote\` va a Steam Cloud, `local\` es de esta maquina). Un perfil es una copia de esos archivos en `%APPDATA%\GRIEF\dota-perfiles`; como no llevan nada atado a la cuenta, sirven igual en cualquiera. Aplicar exige Dota cerrado (al salir reescribe los controles) y siempre guarda antes un respaldo de lo que habia.
 
+   La vista trae tambien un **reinicio de Steam** (`steam.exe -shutdown`, espera a que el proceso muera y lo relanza), que es el paso que hace falta despues de aplicar para que la nube no devuelva la version vieja. Pide dos clics y se niega con Dota abierto.
+
    Las **dos capas de controles viajan juntas**: dentro de `dotakeys_personal.lst` los globales estan en los bloques `Keys` e `Items` y los de cada heroe en `Units`, asi que copiar el archivo se las lleva las dos. La app lee ese KeyValues solo para contarlas y enseñar en cada ficha cuantos controles globales y que heroes con teclas propias trae el perfil.
 
 El tracker en si sigue sin dependencias npm (Node >= 20 y modulos nativos); electron y electron-builder son solo devDependencies para la app.

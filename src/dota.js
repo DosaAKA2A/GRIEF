@@ -6,7 +6,7 @@
 //   userdata\<steamid3>\570\local\   -> solo esta maquina
 // Un "perfil" aqui es una copia de esos archivos. Como no llevan nada atado a
 // la cuenta, la copia de una cuenta sirve tal cual en otra.
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -387,6 +387,54 @@ export async function aplicarPerfil({ perfil, cuenta }) {
     steamAbierto: procesos.steam,
     destino: { id: destino.id, persona: destino.persona, activa: destino.activa },
   };
+}
+
+// Ruta de steam.exe: el propio Steam la deja en el registro al instalarse.
+async function steamExe() {
+  try {
+    const { stdout } = await ejecutar("reg", ["query", "HKCU\\Software\\Valve\\Steam", "/v", "SteamExe"]);
+    const m = stdout.match(/SteamExe\s+REG_SZ\s+(.+)/i);
+    if (m) {
+      const ruta = m[1].trim().replace(/\//g, "\\");
+      if (existsSync(ruta)) return ruta;
+    }
+  } catch {}
+  const steam = await steamPathRegistro();
+  const candidato = steam ? join(steam, "steam.exe") : null;
+  return candidato && existsSync(candidato) ? candidato : null;
+}
+
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Reinicio limpio de Steam. Hace falta despues de aplicar un perfil: Steam
+// tiene en memoria el estado de la nube de esta sesion y al salir puede subir
+// —o volver a bajar— la version vieja por encima de lo que se acaba de copiar.
+// `steam.exe -shutdown` es el apagado ordenado que ofrece el propio cliente:
+// cierra sesion y guarda, nada de matar el proceso.
+export async function reiniciarSteam() {
+  const procesos = await procesosAbiertos();
+  if (procesos.dota) {
+    throw new Error("Cierra Dota 2 antes: apagar Steam con el juego abierto lo corta de golpe.");
+  }
+  const exe = await steamExe();
+  if (!exe) throw new Error("No encuentro steam.exe en esta computadora.");
+
+  let cerrado = false;
+  if (procesos.steam) {
+    await ejecutar(exe, ["-shutdown"]);
+    // Steam tarda lo suyo en cerrar del todo (sube la nube antes de irse).
+    for (let i = 0; i < 60 && !cerrado; i++) {
+      await esperar(700);
+      cerrado = !(await procesosAbiertos()).steam;
+    }
+    if (!cerrado) {
+      throw new Error("Steam no terminó de cerrarse. Ciérralo a mano y vuelve a intentarlo.");
+    }
+    await esperar(1500); // margen para que suelte sus archivos
+  }
+
+  spawn(exe, [], { detached: true, stdio: "ignore" }).unref();
+  return { ok: true, cerrado };
 }
 
 export async function borrarPerfil({ perfil }) {

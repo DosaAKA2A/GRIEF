@@ -567,6 +567,7 @@ function abrirComps() {
 // que es lo que antes habia que hacer a mano con el explorador de archivos.
 
 let dotaDatos = null;
+let reinicioArmado = false; // el boton de Steam pide dos clics: cierra el cliente
 
 function fechaCorta(iso) {
   if (!iso) return "";
@@ -691,6 +692,12 @@ function pintarDota() {
     dotaAviso(null);
   }
 
+  // Reiniciar Steam solo tiene sentido con Steam vivo y Dota cerrado.
+  const steamBoton = $("dota-steam");
+  $("dota-sistema").hidden = !dotaDatos.procesos?.steam;
+  steamBoton.disabled = !!dotaDatos.procesos?.dota;
+  if (!reinicioArmado) steamBoton.textContent = "Reiniciar Steam";
+
   lista.replaceChildren(
     ...(dotaDatos.perfiles.length
       ? dotaDatos.perfiles.map(tarjetaPerfilDota)
@@ -752,12 +759,45 @@ async function aplicarPerfilDota(p) {
       `"${p.nombre ?? p.id}" aplicado en ${donde}: ${r.archivos} archivos, ` +
         `${r.capas?.globales ?? 0} controles globales y ${heroes} héroes con teclas propias.` +
         (r.respaldo ? " Lo anterior quedó guardado como respaldo." : "") +
-        (r.steamAbierto ? " Reinicia Steam antes de entrar a Dota." : ""),
+        (r.steamAbierto ? " Dale a Reiniciar Steam aquí abajo antes de entrar a Dota." : ""),
       "ok"
     );
   } catch (err) {
     dotaAviso(err.message, "error");
   }
+}
+
+// Reinicio de Steam: cierra el cliente entero, asi que pide un segundo clic.
+let reinicioTimer = null;
+async function reiniciarSteam() {
+  const boton = $("dota-steam");
+  if (!reinicioArmado) {
+    reinicioArmado = true;
+    boton.textContent = "Confirmar: cerrar y abrir Steam";
+    clearTimeout(reinicioTimer);
+    reinicioTimer = setTimeout(() => {
+      reinicioArmado = false;
+      boton.textContent = "Reiniciar Steam";
+    }, 6000);
+    return;
+  }
+  clearTimeout(reinicioTimer);
+  reinicioArmado = false;
+  boton.disabled = true;
+  boton.textContent = "Cerrando Steam...";
+  dotaAviso("Cerrando Steam de forma ordenada. Puede tardar medio minuto: sube tus datos a la nube antes de irse.", "ojo");
+  try {
+    await accionDota("/dota/reiniciar-steam", {});
+    dotaAviso(
+      "Steam reiniciado. Si te pide iniciar sesión, hazlo y entra a Dota: los controles del perfil ya están puestos.",
+      "ok"
+    );
+  } catch (err) {
+    dotaAviso(err.message, "error");
+  }
+  boton.textContent = "Reiniciar Steam";
+  boton.disabled = false;
+  await cargarDota();
 }
 
 async function borrarPerfilDota(p) {
@@ -1007,6 +1047,7 @@ $("dota-cerrar").addEventListener("click", () => {
 });
 $("dota-cuenta").addEventListener("change", pintarDota);
 $("dota-nuevo").addEventListener("click", guardarPerfilDota);
+$("dota-steam").addEventListener("click", reiniciarSteam);
 $("dota-nombre").addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") guardarPerfilDota();
 });
