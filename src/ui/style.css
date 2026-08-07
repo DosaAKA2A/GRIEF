@@ -1353,14 +1353,14 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   color: var(--apagado);
 }
 
-/* Las demas cuentas de Steam de esta computadora, para cambiar de destino. */
+/* Elegir a que cuenta se le escriben los controles. Desplegable y no una fila
+   de fichas: hay quien tiene nueve cuentas de Steam y en fila no caben. */
 .dota-otras {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
   align-items: flex-end;
-  max-width: 55%;
 }
 .dota-otras small {
   font-family: var(--mono);
@@ -1369,30 +1369,81 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   text-transform: uppercase;
   color: var(--tenue);
 }
-.dota-cuentas { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
-.dota-cuenta {
+.dota-cambiar {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.25rem 0.55rem 0.25rem 0.25rem;
+  gap: 0.5rem;
+  min-width: 10rem;
+  padding: 0.35rem 0.55rem;
   background: var(--fondo);
   border: 1px solid var(--linea);
   color: var(--claro);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }
-.dota-cuenta:hover:not(:disabled) { border-color: var(--rojo); color: var(--hueso); }
-.dota-cuenta:disabled { opacity: 0.5; cursor: default; }
-.dota-cuenta img { width: 1.5rem; height: 1.5rem; object-fit: cover; display: block; }
-.dota-cuenta-nombre {
+.dota-cambiar:hover:not(:disabled),
+.dota-cambiar[aria-expanded="true"] { border-color: var(--rojo); color: var(--hueso); }
+.dota-cambiar:disabled { opacity: 0.5; cursor: default; }
+.dota-cambiar-nombre {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
   font-family: var(--sans);
-  font-size: 0.72rem;
-  max-width: 7rem;
+  font-size: 0.78rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dota-cuenta-marca {
+.dota-cambiar svg { flex: 0 0 auto; }
+
+/* El panel vive en <body>: dentro del banner lo recortaria su clip-path. */
+.dota-panel {
+  position: fixed;
+  z-index: 60;
+  min-width: 15rem;
+  max-width: 22rem;
+  max-height: 17rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+.dota-opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  color: var(--claro);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.dota-opcion:hover { background: rgba(255, 70, 85, 0.1); }
+.dota-opcion--elegida { border-left-color: var(--rojo); background: rgba(255, 70, 85, 0.06); }
+.dota-opcion img { width: 1.9rem; height: 1.9rem; object-fit: cover; display: block; flex: 0 0 auto; }
+.dota-opcion-textos { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.dota-opcion-nombre {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--hueso);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dota-opcion-detalle {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+.dota-opcion-marca {
+  flex: 0 0 auto;
   font-family: var(--mono);
   font-size: 0.5rem;
   letter-spacing: 0.14em;

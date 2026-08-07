@@ -692,34 +692,78 @@ function pintarCabeceraDota() {
       : "Cuenta elegida  ·  no es la sesión abierta";
   $("dota-cab-etiqueta").classList.toggle("dota-cab-etiqueta--ojo", !!cuenta && !cuenta.activa);
 
-  // Las otras cuentas. Con una sola cuenta el bloque sobra y se esconde.
-  const otras = (dotaDatos?.cuentas ?? []).filter((c) => c.id !== cuenta?.id);
-  $("dota-otras").hidden = otras.length === 0;
-  $("dota-cuentas").replaceChildren(
-    ...otras.map((c) => {
+  // Con una sola cuenta no hay nada que elegir y el desplegable sobra.
+  const varias = (dotaDatos?.cuentas?.length ?? 0) > 1;
+  $("dota-otras").hidden = !varias;
+  if (varias) {
+    $("dota-cambiar-nombre").textContent = cuenta ? (cuenta.persona ?? cuenta.id) : "Elegir";
+    $("dota-cambiar").disabled = dotaOcupado;
+  }
+  if (!varias || dotaOcupado) cerrarPanelCuentas();
+}
+
+// ---- Desplegable de cuentas ----
+// Va en <body> con position:fixed, no dentro del banner: el banner lleva
+// clip-path y recortaria cualquier panel que se saliera de su caja. Se coloca
+// a mano bajo el boton, igual que el tooltip.
+const panelCuentas = el("div", "dota-panel");
+panelCuentas.hidden = true;
+panelCuentas.setAttribute("role", "listbox");
+document.addEventListener("DOMContentLoaded", () => document.body.append(panelCuentas));
+
+function cerrarPanelCuentas() {
+  panelCuentas.hidden = true;
+  $("dota-cambiar")?.setAttribute("aria-expanded", "false");
+}
+
+function abrirPanelCuentas() {
+  const cuenta = cuentaElegida();
+  panelCuentas.replaceChildren(
+    ...(dotaDatos?.cuentas ?? []).map((c) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "dota-cuenta";
-      b.disabled = dotaOcupado;
-      b.dataset.tip = c.activa
-        ? "Es la sesión que tienes abierta en Steam"
-        : `${c.capas?.globales ?? 0} controles globales · ${c.capas?.heroes?.length ?? 0} héroes`;
+      b.className = "dota-opcion" + (c.id === cuenta?.id ? " dota-opcion--elegida" : "");
+      b.setAttribute("role", "option");
+      b.setAttribute("aria-selected", String(c.id === cuenta?.id));
       if (c.avatar) {
         const img = document.createElement("img");
         img.src = `/dota/avatar/cuenta/${encodeURIComponent(c.id)}`;
         img.alt = "";
         b.append(img);
       }
-      b.append(el("span", "dota-cuenta-nombre", c.persona ?? c.id));
-      if (c.activa) b.append(el("span", "dota-cuenta-marca", "Abierta"));
+      const textos = el("span", "dota-opcion-textos");
+      textos.append(el("span", "dota-opcion-nombre", c.persona ?? c.id));
+      textos.append(
+        el(
+          "span",
+          "dota-opcion-detalle",
+          `${c.capas?.globales ?? 0} globales · ${c.capas?.heroes?.length ?? 0} héroes`
+        )
+      );
+      b.append(textos);
+      if (c.activa) b.append(el("span", "dota-opcion-marca", "Abierta"));
       b.addEventListener("click", () => {
         dotaCuentaId = c.id;
+        cerrarPanelCuentas();
         dotaAviso(null);
         pintarDota();
       });
       return b;
     })
   );
+
+  // Alineado por la derecha con el boton; si no cabe debajo, sube encima.
+  const r = $("dota-cambiar").getBoundingClientRect();
+  panelCuentas.hidden = false;
+  panelCuentas.style.visibility = "hidden";
+  panelCuentas.style.left = "0px";
+  panelCuentas.style.top = "0px";
+  const alto = panelCuentas.getBoundingClientRect().height;
+  const cabeDebajo = r.bottom + 6 + alto <= window.innerHeight - 8;
+  panelCuentas.style.left = `${Math.max(8, r.right - panelCuentas.getBoundingClientRect().width)}px`;
+  panelCuentas.style.top = `${cabeDebajo ? r.bottom + 6 : Math.max(8, r.top - 6 - alto)}px`;
+  panelCuentas.style.visibility = "";
+  $("dota-cambiar").setAttribute("aria-expanded", "true");
 }
 
 function pintarDota() {
@@ -1165,6 +1209,19 @@ $("plat-steam").addEventListener("click", () => {
   cerrarMenu();
   abrirDota();
 });
+$("dota-cambiar").addEventListener("click", (ev) => {
+  ev.stopPropagation(); // si no, el listener de document lo cierra al vuelo
+  if (panelCuentas.hidden) abrirPanelCuentas();
+  else cerrarPanelCuentas();
+});
+document.addEventListener("click", (ev) => {
+  if (!panelCuentas.hidden && !panelCuentas.contains(ev.target)) cerrarPanelCuentas();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape") cerrarPanelCuentas();
+});
+window.addEventListener("resize", cerrarPanelCuentas);
+
 $("dota-nuevo").addEventListener("click", guardarPerfilDota);
 $("dota-deshacer").addEventListener("click", deshacerDota);
 $("dota-nombre").addEventListener("keydown", (ev) => {
