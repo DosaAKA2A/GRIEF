@@ -1325,3 +1325,21 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   border: 1px dashed var(--linea);
   text-align: center;
 }
+
+/* Las dos capas de controles de Dota: globales y por heroe */
+.dota-capas { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.15rem; }
+.dota-capa {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--claro);
+  border: 1px solid var(--linea);
+  padding: 0.12rem 0.4rem;
+}
+.dota-item-heroes {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--tenue);
+}

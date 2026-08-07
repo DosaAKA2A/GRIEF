@@ -19,20 +19,28 @@ const APPID = "570";
 // Archivos que forman un perfil, relativos a userdata\<id>\570\. Solo
 // configuracion: nada de estadisticas, ultima partida ni logos de equipo, que
 // cambian cada rato y no son parte de "como juego".
+//
+// Dota tiene dos capas de controles: los globales (valen juegues lo que
+// juegues) y los de cada heroe (teclas propias para sus habilidades). Las dos
+// viajan siempre juntas: un perfil es la configuracion completa, no media.
+// Dentro del .lst conviven en bloques distintos —"Keys" e "Items" son los
+// globales, "Units" son los de cada heroe— y por eso basta copiar el archivo.
+export const LST = "remote/cfg/dotakeys_personal.lst";
+
 const ARCHIVOS = [
-  "remote/cfg/dotakeys_personal.lst", // el layout de controles completo
-  "remote/cfg/herobuilds.cfg", // guias de objetos propias
-  "remote/cfg/hero_facet_config.cfg",
-  "remote/cfg/dota_player_loadout_shuffle.txt", // rotacion de objetos globales
-  "remote/cfg/saved_sets.kv", // sets guardados por heroe
-  "remote/cfg/dota_armory_filters.txt",
-  "remote/user_keys.vcfg", // binds hechos por consola
-  "remote/user_convars.vcfg", // ajustes de juego
-  "remote/scripts/control_groups.txt", // grupos de control por heroe
-  "remote/scripts/item_suggest_preference.txt",
-  "remote/scripts/lobby_settings.txt",
-  "local/cfg/user_convars_0_slot0.vcfg",
-  "local/cfg/user_keys_0_slot0.vcfg",
+  LST, // globales + por heroe, en un solo archivo
+  "remote/user_keys.vcfg", // global: binds hechos por consola
+  "remote/user_convars.vcfg", // global: ajustes de juego
+  "remote/cfg/dota_armory_filters.txt", // global
+  "remote/cfg/dota_player_loadout_shuffle.txt", // global: rotacion de objetos
+  "remote/scripts/item_suggest_preference.txt", // global
+  "remote/scripts/lobby_settings.txt", // global
+  "local/cfg/user_convars_0_slot0.vcfg", // global
+  "local/cfg/user_keys_0_slot0.vcfg", // global
+  "remote/scripts/control_groups.txt", // por heroe: grupos de control
+  "remote/cfg/herobuilds.cfg", // por heroe: guias de objetos
+  "remote/cfg/hero_facet_config.cfg", // por heroe
+  "remote/cfg/saved_sets.kv", // por heroe: sets de aspecto
 ];
 
 // Raiz de los perfiles guardados. Fuera del repo y fuera de Steam: sobrevive a
@@ -128,6 +136,7 @@ export async function listarCuentas() {
       bytes: tamano,
       tocado,
       ultimaPartida: await ultimaPartida(appDir),
+      capas: await capasDe(lst),
     });
   }
   // La cuenta con la configuracion tocada mas recientemente va primero: es la
@@ -162,27 +171,104 @@ export async function listarPerfiles() {
     try {
       meta = JSON.parse(await readFile(join(RAIZ, d.name, "perfil.json"), "utf8"));
     } catch {}
+    const lst = join(RAIZ, d.name, ...LST.split("/"));
     let bytes = 0;
     try {
-      bytes = (await stat(join(RAIZ, d.name, "remote", "cfg", "dotakeys_personal.lst"))).size;
+      bytes = (await stat(lst)).size;
     } catch {}
-    perfiles.push({ id: d.name, bytes, ...meta });
+    // Las capas se releen del propio archivo guardado: valen tambien para los
+    // perfiles creados antes de que se anotaran en perfil.json.
+    perfiles.push({ id: d.name, bytes, ...meta, capas: await capasDe(lst) });
   }
   perfiles.sort((a, b) => String(b.guardado ?? "").localeCompare(String(a.guardado ?? "")));
   return perfiles;
 }
 
+// ---- Lectura del .lst ----
+// KeyValues de Valve, un token por linea. Se trocea en piezas de primer nivel
+// solo para mirar dentro (que heroes traen teclas propias); el archivo se
+// copia tal cual, nunca se reserializa.
+function trocear(texto) {
+  const lineas = texto.split(/\r?\n/);
+  let i = 0;
+  while (i < lineas.length && lineas[i].trim() !== "{") i++;
+  if (i >= lineas.length) return null; // no es el formato esperado
+  let fin = lineas.length - 1;
+  while (fin > i && lineas[fin].trim() !== "}") fin--;
+
+  const piezas = [];
+  let j = i + 1;
+  while (j < fin) {
+    const linea = lineas[j];
+    const escalar = linea.match(/^\s*"([^"]+)"\s+"(.*)"\s*$/);
+    if (escalar) {
+      piezas.push({ clave: escalar[1], lineas: [linea] });
+      j++;
+      continue;
+    }
+    const bloque = linea.match(/^\s*"([^"]+)"\s*$/);
+    if (bloque && lineas[j + 1]?.trim() === "{") {
+      const acumulado = [linea];
+      let prof = 0;
+      let k = j + 1;
+      for (; k < fin; k++) {
+        const t = lineas[k].trim();
+        acumulado.push(lineas[k]);
+        if (t === "{") prof++;
+        else if (t === "}" && --prof === 0) break;
+      }
+      piezas.push({ clave: bloque[1], lineas: acumulado });
+      j = k + 1;
+      continue;
+    }
+    piezas.push({ clave: null, lineas: [linea] }); // vacios y lo que no encaje
+    j++;
+  }
+  return { cabecera: lineas.slice(0, i + 1), piezas, cierre: lineas.slice(fin) };
+}
+
+// Que trae un .lst: cuantas teclas globales y que heroes tienen las suyas.
+// Es lo que la UI enseña para dejar claro que un perfil lleva las dos capas.
+export function capasDelLst(texto) {
+  const t = trocear(texto);
+  if (!t) return { globales: 0, items: 0, heroes: [] };
+
+  const cuentaHijos = (clave, patron) => {
+    const bloque = t.piezas.find((p) => p.clave === clave);
+    if (!bloque) return [];
+    return bloque.lineas.map((l) => l.match(patron)).filter(Boolean).map((m) => m[1]);
+  };
+
+  const heroes = cuentaHijos("Units", /^\t\t"npc_dota_(?:hero_)?([a-z0-9_]+)"\s*$/).map((n) =>
+    n.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+  return {
+    globales: cuentaHijos("Keys", /^\t\t"([^"]+)"\s*$/).length,
+    items: cuentaHijos("Items", /^\t\t"(item_[^"]+)"\s*$/).length,
+    heroes,
+  };
+}
+
 async function copiarLote(origenBase, destinoBase) {
   const copiados = [];
-  for (const rel of ARCHIVOS) {
-    const origen = join(origenBase, ...rel.split("/"));
+  for (const ruta of ARCHIVOS) {
+    const origen = join(origenBase, ...ruta.split("/"));
     if (!existsSync(origen)) continue;
-    const destino = join(destinoBase, ...rel.split("/"));
+    const destino = join(destinoBase, ...ruta.split("/"));
     await mkdir(dirname(destino), { recursive: true });
     await copyFile(origen, destino);
-    copiados.push(rel);
+    copiados.push(ruta);
   }
   return copiados;
+}
+
+// Capas de un .lst en disco; si no esta, ceros.
+async function capasDe(ruta) {
+  try {
+    return capasDelLst(await readFile(ruta, "utf8"));
+  } catch {
+    return { globales: 0, items: 0, heroes: [] };
+  }
 }
 
 export async function guardarPerfil({ cuenta, nombre, automatico = false }) {
@@ -211,6 +297,7 @@ export async function guardarPerfil({ cuenta, nombre, automatico = false }) {
     persona: origen.persona,
     layout: origen.layout,
     ultimaPartida: origen.ultimaPartida,
+    capas: origen.capas, // globales + heroes con teclas propias, para la ficha
     automatico,
     archivos,
   };
@@ -268,7 +355,14 @@ export async function aplicarPerfil({ perfil, cuenta }) {
   } catch {}
 
   const archivos = await copiarLote(origen, destino.appDir);
-  return { archivos: archivos.length, respaldo: respaldo?.id ?? null, steamAbierto: procesos.steam };
+  // Se comprueba sobre lo ya escrito: confirma que las dos capas llegaron.
+  const capas = await capasDe(join(destino.appDir, ...LST.split("/")));
+  return {
+    archivos: archivos.length,
+    capas,
+    respaldo: respaldo?.id ?? null,
+    steamAbierto: procesos.steam,
+  };
 }
 
 export async function borrarPerfil({ perfil }) {

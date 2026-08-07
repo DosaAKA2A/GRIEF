@@ -602,6 +602,17 @@ function tarjetaPerfilDota(p) {
   ].filter(Boolean);
   li.append(el("span", "dota-item-detalle", detalle.join("  ·  ")));
 
+  // Las dos capas de Dota, siempre juntas: se aplican las dos de golpe.
+  const capas = p.capas ?? {};
+  const heroes = capas.heroes ?? [];
+  const fila = el("div", "dota-capas");
+  fila.append(
+    el("span", "dota-capa", `${capas.globales ?? 0} controles globales`),
+    el("span", "dota-capa", heroes.length ? `${heroes.length} héroes con teclas propias` : "sin teclas por héroe")
+  );
+  li.append(fila);
+  if (heroes.length) li.append(el("span", "dota-item-heroes", heroes.join(", ")));
+
   if (p.ultimaPartida) {
     li.append(el("span", "dota-item-partida", `Última partida con estos controles: ${p.ultimaPartida}`));
   }
@@ -646,7 +657,8 @@ function pintarDota() {
   $("dota-sub").textContent = cuenta
     ? [
         cuenta.layout ? `Layout actual: ${cuenta.layout}` : null,
-        cuenta.bytes ? `${(cuenta.bytes / 1024).toFixed(0)} KB de controles` : null,
+        `${cuenta.capas?.globales ?? 0} globales`,
+        `${cuenta.capas?.heroes?.length ?? 0} héroes con teclas propias`,
       ]
         .filter(Boolean)
         .join("  ·  ")
@@ -716,8 +728,10 @@ async function aplicarPerfilDota(p) {
     const r = await accionDota("/dota/aplicar", { perfil: p.id, cuenta });
     await cargarDota();
     const donde = destino?.persona ?? cuenta;
+    const heroes = r.capas?.heroes?.length ?? 0;
     dotaAviso(
-      `"${p.nombre ?? p.id}" aplicado en ${donde}: ${r.archivos} archivos.` +
+      `"${p.nombre ?? p.id}" aplicado en ${donde}: ${r.archivos} archivos, ` +
+        `${r.capas?.globales ?? 0} controles globales y ${heroes} héroes con teclas propias.` +
         (r.respaldo ? " Lo anterior quedó guardado como respaldo." : "") +
         (r.steamAbierto ? " Reinicia Steam antes de entrar a Dota." : ""),
       "ok"
