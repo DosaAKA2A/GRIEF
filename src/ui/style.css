@@ -115,6 +115,11 @@ body::before {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .plat svg { width: 1.05rem; height: 1.05rem; display: block; }
+/* La marca de Steam es ancha y baja, y el puño de Riot casi cuadrado y macizo:
+   a igual caja, Steam se ve mas pequeña. Se le da algo mas de ancho para que
+   los dos pesen lo mismo. Su viewBox esta ajustado al trazado (getBBox) porque
+   el original deja aire arriba, donde iba el circulo azul que quitamos. */
+#plat-steam svg { width: 1.22rem; height: 1.22rem; }
 .plat:hover { color: var(--hueso); border-color: var(--apagado); }
 /* Seleccionada: se marca con el rojo de la marca, pero sin el degradado, que
    esta reservado para las acciones (capturar, actualizar). */
