@@ -33,13 +33,13 @@
 .plat, .menu-panel, .modal-caja, .marca-tag,
 .perfil-cab, .perfil-avatar, .perfil-tile, .partida, .comps-cab, .comp,
 .banda, .jugador, .pie-version, .pie-boton, .tip,
-.dota-cab, .dota-item {
+.dota-cab, .dota-cab-foto, .dota-item {
   position: relative;
 }
 .plat::after, .menu-panel::after, .modal-caja::after, .marca-tag::after,
 .perfil-cab::after, .perfil-avatar::after, .perfil-tile::after, .partida::after, .comps-cab::after, .comp::after,
 .banda::after, .jugador::after, .pie-version::after, .pie-boton::after, .tip::after,
-.dota-cab::after, .dota-item::after {
+.dota-cab::after, .dota-cab-foto::after, .dota-item::after {
   content: "";
   position: absolute;
   /* OJO con estos dos numeros: un elemento absoluto se posiciona contra la caja
@@ -137,39 +137,6 @@ body::before {
 /* Plataformas: conmutador a la derecha de la barra. Riot son los trackers,
    Steam los controles de Dota. Misma altura que el boton de menu para no
    mover el alto de la barra (el lienzo mide 1134/666 y no perdona). */
-/* Quien esta jugando: la cuenta de Steam con la sesion abierta. Solo aparece en
-   la vista de Steam, que es donde significa algo. Cabe en el alto que ya tenia
-   la barra (2rem) para no descuadrar el lienzo. */
-.steam-sesion {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding-right: 0.15rem;
-}
-.steam-sesion-foto {
-  width: 1.6rem;
-  height: 1.6rem;
-  object-fit: cover;
-  border: 1px solid var(--linea);
-}
-.steam-sesion-textos { display: flex; flex-direction: column; line-height: 1.25; }
-.steam-sesion-textos small {
-  font-family: var(--mono);
-  font-size: 0.52rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--tenue);
-}
-.steam-sesion-nick {
-  font-family: var(--sans);
-  font-size: 0.72rem;
-  color: var(--hueso);
-  max-width: 9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .plataformas {
   display: flex;
   gap: 0.4rem;
@@ -1321,48 +1288,116 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   gap: 0.85rem;
   min-height: 0;
 }
-.dota-cab {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  padding: 0.75rem 1.2rem;
-  background: linear-gradient(120deg, var(--panel), var(--panel-2));
-  border: 1px solid var(--linea);
-  --corte: 12px;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
-}
-.dota-titulos { flex: 1; min-width: 0; }
-.dota-titulos h1 {
+.dota-titulo {
   font-family: var(--display);
   font-weight: 700;
   font-size: 1.35rem;
   letter-spacing: 0.02em;
 }
+
+/* Banner de la cuenta: la cara de a quien le vas a escribir los controles. Es
+   lo primero que se lee, por eso la foto es grande y el nick va en display. */
+.dota-cab {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.85rem 1.2rem;
+  background: linear-gradient(120deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  --corte: 12px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
+}
+.dota-cab-foto {
+  position: relative;
+  flex: 0 0 auto;
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
+  --corte: 8px;
+  border: 1px solid var(--linea);
+  background: var(--fondo);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%);
+}
+.dota-cab-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dota-cab-info { flex: 1; min-width: 0; }
+.dota-cab-etiqueta {
+  display: block;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+/* Escribir en una cuenta que no es la que tienes abierta es justo el error que
+   se paga caro, asi que ese caso se marca en ambar. */
+.dota-cab-etiqueta--ojo { color: #e8c35c; }
+.dota-cab-nick {
+  display: block;
+  margin: 0.1rem 0 0.15rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+  color: var(--hueso);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dota-sub {
   display: block;
-  margin-top: 0.2rem;
   font-family: var(--mono);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--apagado);
 }
-.dota-filtro { display: flex; flex-direction: column; gap: 0.25rem; }
-.dota-filtro small {
+
+/* Las demas cuentas de Steam de esta computadora, para cambiar de destino. */
+.dota-otras {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-end;
+  max-width: 55%;
+}
+.dota-otras small {
   font-family: var(--mono);
   font-size: 0.55rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--tenue);
 }
-.dota-filtro select {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--claro);
+.dota-cuentas { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+.dota-cuenta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.55rem 0.25rem 0.25rem;
   background: var(--fondo);
   border: 1px solid var(--linea);
-  padding: 0.3rem 0.5rem;
-  min-width: 11rem;
+  color: var(--claro);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.dota-cuenta:hover:not(:disabled) { border-color: var(--rojo); color: var(--hueso); }
+.dota-cuenta:disabled { opacity: 0.5; cursor: default; }
+.dota-cuenta img { width: 1.5rem; height: 1.5rem; object-fit: cover; display: block; }
+.dota-cuenta-nombre {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dota-cuenta-marca {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
 }
 
 .dota-guardar { display: flex; gap: 0.6rem; align-items: stretch; }

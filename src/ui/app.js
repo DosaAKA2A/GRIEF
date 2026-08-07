@@ -585,8 +585,14 @@ function dotaAviso(texto, clase) {
   aviso.hidden = false;
 }
 
+// A que cuenta se le escriben los controles. Por defecto la sesion abierta en
+// Steam (viene primera de listarCuentas); si eliges otra, manda tu eleccion
+// mientras esa cuenta siga existiendo.
+let dotaCuentaId = null;
+
 function cuentaElegida() {
-  return dotaDatos?.cuentas.find((c) => c.id === $("dota-cuenta").value) ?? null;
+  const cuentas = dotaDatos?.cuentas ?? [];
+  return cuentas.find((c) => c.id === dotaCuentaId) ?? cuentas[0] ?? null;
 }
 
 // Los heroes se enseñan por nombre, pero sin convertir la ficha en un muro:
@@ -669,21 +675,51 @@ function tarjetaPerfilDota(p) {
   return li;
 }
 
-// La sesion de Steam abierta, en la barra de arriba. Solo tiene sentido en la
-// vista de Steam: en los trackers de Riot seria ruido, asi que se esconde.
-function pintarSesionSteam() {
-  const caja = $("steam-sesion");
-  const activa = dotaDatos?.cuentas?.find((c) => c.activa);
-  const enSteam = !$("dota").hidden;
-  if (!enSteam || !activa) {
-    caja.hidden = true;
-    return;
-  }
-  $("steam-sesion-nick").textContent = activa.persona ?? activa.id;
-  const foto = $("steam-sesion-foto");
-  foto.hidden = !activa.avatar;
-  if (activa.avatar) foto.src = `/dota/avatar/cuenta/${encodeURIComponent(activa.id)}`;
-  caja.hidden = false;
+// El banner de la cuenta: quien es, si es la sesion que tienes abierta y que
+// tiene configurado. Debajo, las demas cuentas de esta computadora, para poder
+// escribirle los controles a otra sin salir de aqui.
+function pintarCabeceraDota() {
+  const cuenta = cuentaElegida();
+  const foto = $("dota-cab-foto");
+  foto.hidden = !cuenta?.avatar;
+  if (cuenta?.avatar) foto.src = `/dota/avatar/cuenta/${encodeURIComponent(cuenta.id)}`;
+
+  $("dota-cab-nick").textContent = cuenta ? (cuenta.persona ?? cuenta.id) : "Sin cuentas de Dota";
+  $("dota-cab-etiqueta").textContent = !cuenta
+    ? ""
+    : cuenta.activa
+      ? "Sesión abierta en Steam"
+      : "Cuenta elegida  ·  no es la sesión abierta";
+  $("dota-cab-etiqueta").classList.toggle("dota-cab-etiqueta--ojo", !!cuenta && !cuenta.activa);
+
+  // Las otras cuentas. Con una sola cuenta el bloque sobra y se esconde.
+  const otras = (dotaDatos?.cuentas ?? []).filter((c) => c.id !== cuenta?.id);
+  $("dota-otras").hidden = otras.length === 0;
+  $("dota-cuentas").replaceChildren(
+    ...otras.map((c) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "dota-cuenta";
+      b.disabled = dotaOcupado;
+      b.dataset.tip = c.activa
+        ? "Es la sesión que tienes abierta en Steam"
+        : `${c.capas?.globales ?? 0} controles globales · ${c.capas?.heroes?.length ?? 0} héroes`;
+      if (c.avatar) {
+        const img = document.createElement("img");
+        img.src = `/dota/avatar/cuenta/${encodeURIComponent(c.id)}`;
+        img.alt = "";
+        b.append(img);
+      }
+      b.append(el("span", "dota-cuenta-nombre", c.persona ?? c.id));
+      if (c.activa) b.append(el("span", "dota-cuenta-marca", "Abierta"));
+      b.addEventListener("click", () => {
+        dotaCuentaId = c.id;
+        dotaAviso(null);
+        pintarDota();
+      });
+      return b;
+    })
+  );
 }
 
 function pintarDota() {
@@ -697,21 +733,10 @@ function pintarDota() {
     return;
   }
 
-  const select = $("dota-cuenta");
-  const elegida = select.value;
-  select.replaceChildren(
-    ...dotaDatos.cuentas.map((c) => {
-      const o = document.createElement("option");
-      o.value = c.id;
-      const nombre = c.persona ?? c.id;
-      o.textContent = c.activa ? `${nombre} — sesión abierta` : nombre;
-      return o;
-    })
-  );
-  // Por defecto, la cuenta con la que Steam esta abierto (viene primera).
-  if (elegida && dotaDatos.cuentas.some((c) => c.id === elegida)) select.value = elegida;
-
-  pintarSesionSteam();
+  // Si la cuenta elegida ya no esta (cerraste sesion, quitaste el juego), se
+  // vuelve sola a la primera, que es la sesion abierta.
+  if (dotaCuentaId && !dotaDatos.cuentas.some((c) => c.id === dotaCuentaId)) dotaCuentaId = null;
+  pintarCabeceraDota();
 
   const cuenta = cuentaElegida();
   $("dota-sub").textContent = cuenta
@@ -874,7 +899,6 @@ function marcarPlataforma(cual) {
 function abrirRiot() {
   $("dota").hidden = true;
   marcarPlataforma("riot");
-  $("steam-sesion").hidden = true; // la sesion de Steam no pinta nada aqui
   // Vuelve a lo que hubiera: la partida en curso, tu perfil o la pantalla vacia.
   if (ultimoEstado) pintar(ultimoEstado);
 }
@@ -1141,7 +1165,6 @@ $("plat-steam").addEventListener("click", () => {
   cerrarMenu();
   abrirDota();
 });
-$("dota-cuenta").addEventListener("change", pintarDota);
 $("dota-nuevo").addEventListener("click", guardarPerfilDota);
 $("dota-deshacer").addEventListener("click", deshacerDota);
 $("dota-nombre").addEventListener("keydown", (ev) => {

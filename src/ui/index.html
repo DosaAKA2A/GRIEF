@@ -17,14 +17,6 @@
       <i class="fase-punto"></i><span id="fase-texto"></span>
     </div>
     <div id="estado" class="estado">Conectando...</div>
-    <!-- Que cuenta de Steam esta abierta ahora mismo; solo en la vista de Steam -->
-    <div id="steam-sesion" class="steam-sesion" hidden>
-      <img id="steam-sesion-foto" class="steam-sesion-foto" alt="">
-      <span class="steam-sesion-textos">
-        <small>Sesión de Steam</small>
-        <span id="steam-sesion-nick" class="steam-sesion-nick"></span>
-      </span>
-    </div>
     <!-- Conmutador de plataforma: Riot son los trackers, Steam los controles de Dota -->
     <div class="plataformas" role="group" aria-label="Plataforma">
       <button id="plat-riot" class="plat" type="button" aria-pressed="true" aria-label="Riot" data-tip="Riot · Valorant, League of Legends y TFT">
@@ -154,15 +146,24 @@
 
     <!-- Perfiles de controles de Dota 2: se abre con el boton de Steam -->
     <section id="dota" class="dota" hidden>
+      <h1 class="dota-titulo">Controles de Dota</h1>
+
+      <!-- Banner de la cuenta a la que se van a escribir los controles. Por
+           defecto es la sesion abierta en Steam; se puede cambiar a cualquier
+           otra cuenta de esta computadora que tenga Dota. -->
       <div class="dota-cab">
-        <div class="dota-titulos">
-          <h1>Controles de Dota</h1>
+        <span class="dota-cab-foto">
+          <img id="dota-cab-foto" alt="" hidden>
+        </span>
+        <div class="dota-cab-info">
+          <span id="dota-cab-etiqueta" class="dota-cab-etiqueta"></span>
+          <span id="dota-cab-nick" class="dota-cab-nick"></span>
           <span id="dota-sub" class="dota-sub"></span>
         </div>
-        <label class="dota-filtro">
-          <small>Cuenta de Steam</small>
-          <select id="dota-cuenta"></select>
-        </label>
+        <div id="dota-otras" class="dota-otras" hidden>
+          <small>Cambiar de cuenta</small>
+          <div id="dota-cuentas" class="dota-cuentas"></div>
+        </div>
       </div>
 
       <div class="dota-guardar">
