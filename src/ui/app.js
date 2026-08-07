@@ -618,7 +618,14 @@ function tarjetaPerfilDota(p) {
   }
 
   const acciones = el("div", "dota-item-acciones");
-  const aplicar = el("button", "dota-boton dota-boton--primario", "Aplicar");
+  // El boton dice a que cuenta va: aplicar al perfil equivocado es el unico
+  // error que cuesta caro aqui.
+  const destino = dotaDatos?.cuentas.find((c) => c.id === $("dota-cuenta").value);
+  const aplicar = el(
+    "button",
+    "dota-boton dota-boton--primario",
+    destino ? `Aplicar en ${destino.persona ?? destino.id}` : "Aplicar"
+  );
   aplicar.type = "button";
   aplicar.addEventListener("click", () => aplicarPerfilDota(p));
   const borrar = el("button", "dota-boton", "Borrar");
@@ -647,10 +654,12 @@ function pintarDota() {
     ...dotaDatos.cuentas.map((c) => {
       const o = document.createElement("option");
       o.value = c.id;
-      o.textContent = c.persona ? `${c.persona} (${c.id})` : c.id;
+      const nombre = c.persona ? `${c.persona} (${c.id})` : c.id;
+      o.textContent = c.activa ? `${nombre} — sesión actual` : nombre;
       return o;
     })
   );
+  // Por defecto, la cuenta con la que Steam esta abierto (va primera).
   if (elegida && dotaDatos.cuentas.some((c) => c.id === elegida)) select.value = elegida;
 
   const cuenta = dotaDatos.cuentas.find((c) => c.id === select.value);
@@ -664,8 +673,18 @@ function pintarDota() {
         .join("  ·  ")
     : "Ninguna cuenta de Steam de esta computadora tiene Dota 2.";
 
+  const hayActiva = dotaDatos.cuentas.some((c) => c.activa);
   if (dotaDatos.procesos?.dota) {
     dotaAviso("Dota 2 está abierto. Puedes guardar, pero para aplicar un perfil hay que cerrarlo: al salir reescribe los controles.", "ojo");
+  } else if (hayActiva && cuenta && !cuenta.activa) {
+    // El fallo tipico: guardar desde una cuenta y aplicar sin cambiar el
+    // desplegable, que la deja apuntando a la cuenta de origen.
+    const sesion = dotaDatos.cuentas.find((c) => c.activa);
+    dotaAviso(
+      `Ojo: vas a escribir en ${cuenta.persona ?? cuenta.id}, pero Steam está abierto con ${sesion.persona ?? sesion.id}. ` +
+        "Si querías esa, cámbiala en el desplegable.",
+      "ojo"
+    );
   } else if (dotaDatos.procesos?.steam) {
     dotaAviso("Steam está abierto. Al aplicar un perfil, reinicia Steam antes de entrar a Dota para que la nube no devuelva la versión vieja.", "ojo");
   } else {
@@ -727,7 +746,7 @@ async function aplicarPerfilDota(p) {
   try {
     const r = await accionDota("/dota/aplicar", { perfil: p.id, cuenta });
     await cargarDota();
-    const donde = destino?.persona ?? cuenta;
+    const donde = r.destino?.persona ?? destino?.persona ?? cuenta;
     const heroes = r.capas?.heroes?.length ?? 0;
     dotaAviso(
       `"${p.nombre ?? p.id}" aplicado en ${donde}: ${r.archivos} archivos, ` +

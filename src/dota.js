@@ -69,6 +69,25 @@ async function steamPathRegistro() {
   return steamPath();
 }
 
+// Cuenta con la que Steam esta abierto ahora mismo (SteamID3). Es el dato que
+// evita el error clasico: aplicar un perfil "a mi sesion" y mandarlo sin
+// querer a otra cuenta. Devuelve null con Steam cerrado.
+async function cuentaActiva() {
+  try {
+    const { stdout } = await ejecutar("reg", [
+      "query",
+      "HKCU\\Software\\Valve\\Steam\\ActiveProcess",
+      "/v",
+      "ActiveUser",
+    ]);
+    const m = stdout.match(/ActiveUser\s+REG_DWORD\s+0x([0-9a-f]+)/i);
+    const id = m ? parseInt(m[1], 16) : 0;
+    return id > 0 ? String(id) : null;
+  } catch {
+    return null;
+  }
+}
+
 // El nombre visible de la cuenta esta en su localconfig.vdf.
 async function personaDe(dirUsuario) {
   try {
@@ -115,6 +134,7 @@ export async function listarCuentas() {
   } catch {
     return [];
   }
+  const activa = await cuentaActiva();
   const cuentas = [];
   for (const d of dirs) {
     if (!d.isDirectory()) continue;
@@ -137,11 +157,14 @@ export async function listarCuentas() {
       tocado,
       ultimaPartida: await ultimaPartida(appDir),
       capas: await capasDe(lst),
+      activa: d.name === activa, // la sesion de Steam abierta ahora
     });
   }
-  // La cuenta con la configuracion tocada mas recientemente va primero: es la
-  // que se esta usando ahora.
-  cuentas.sort((a, b) => (b.tocado ?? 0) - (a.tocado ?? 0));
+  // Primero la cuenta con la que Steam esta abierto: es a la que casi siempre
+  // se quiere aplicar. Detras, las demas por configuracion tocada mas
+  // recientemente. Ordenar por fecha a secas ponia arriba la cuenta de la que
+  // acabas de guardar el perfil, que es justo la que NO es el destino.
+  cuentas.sort((a, b) => Number(b.activa) - Number(a.activa) || (b.tocado ?? 0) - (a.tocado ?? 0));
   return cuentas;
 }
 
@@ -362,6 +385,7 @@ export async function aplicarPerfil({ perfil, cuenta }) {
     capas,
     respaldo: respaldo?.id ?? null,
     steamAbierto: procesos.steam,
+    destino: { id: destino.id, persona: destino.persona, activa: destino.activa },
   };
 }
 
