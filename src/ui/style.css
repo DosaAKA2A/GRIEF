@@ -71,6 +71,32 @@ html { font-size: clamp(10px, 1.3913vw, 23px); }
 
 ::selection { background: var(--rojo); color: var(--fondo); }
 
+/* ---- Barra de desplazamiento ----
+   La de Windows, gris y con sus dos flechitas, no pinta nada aqui. Esta es
+   una linea fina sobre el fondo: sin flechas, sin esquinas redondeadas y sin
+   relieve, como el resto de la UI. Se pone roja mientras la arrastras, que es
+   la unica vez que importa donde esta.
+
+   OJO: NADA de scrollbar-width ni scrollbar-color. Son las propiedades
+   estandar, y en cuanto se declara una Chromium IGNORA todo el bloque
+   ::-webkit-scrollbar y vuelve a pintar la barra del sistema, flechas
+   incluidas. La app corre sobre Chromium, asi que aqui manda el webkit. */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track {
+  background: rgba(6, 11, 16, 0.5);
+  border-left: 1px solid var(--linea);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--linea);
+  border: 2px solid transparent; /* deja aire a los lados: la barra queda fina */
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--tenue); background-clip: content-box; }
+::-webkit-scrollbar-thumb:active { background: var(--rojo); background-clip: content-box; }
+/* Sin botones de flecha ni cuadro en la esquina */
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-corner { background: transparent; }
+
 body {
   background:
     radial-gradient(640px 420px at 88% -12%, rgba(255, 70, 85, 0.07), transparent 60%),
@@ -1176,7 +1202,7 @@ body::before {
   transition: background 0.15s, color 0.15s;
 }
 .pie-version--nueva {
-  color: var(--fondo);
+  color: #fff;
   background: var(--rojo);
   cursor: pointer;
 }
@@ -1478,7 +1504,7 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 }
 .dota-boton:hover { border-color: var(--hueso); color: var(--hueso); }
 .dota-boton--primario { color: var(--hueso); border-color: var(--apagado); }
-.dota-boton--primario:hover { background: var(--rojo); border-color: var(--rojo); color: var(--fondo); }
+.dota-boton--primario:hover { background: var(--rojo); border-color: var(--rojo); color: #fff; }
 
 .dota-aviso {
   font-family: var(--mono);
@@ -1617,16 +1643,19 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 }
 
 /* Jerarquia de botones: la accion principal es solida, el resto se aparta */
+/* Sobre el rojo de la marca el texto va en BLANCO. En color de fondo se hunde
+   y hay que forzar la vista para leerlo. Vale para todo lo que se rellene de
+   rojo; sobre hueso o ambar sigue mandando el texto oscuro, que ahi contrasta. */
 .dota-boton--usar {
   font-size: 0.66rem;
   font-weight: 600;
   padding: 0.62rem 1.15rem;
-  color: var(--fondo);
+  color: #fff;
   background: var(--rojo);
   border-color: var(--rojo);
   white-space: nowrap;
 }
-.dota-boton--usar:hover { background: #ff6470; border-color: #ff6470; color: var(--fondo); }
+.dota-boton--usar:hover { background: #ff6470; border-color: #ff6470; color: #fff; }
 .dota-boton--guardar {
   color: var(--fondo);
   background: var(--hueso);
