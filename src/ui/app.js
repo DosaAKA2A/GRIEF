@@ -439,10 +439,15 @@ function pintarPerfil(p) {
   else pintarPerfilValorant(p);
 }
 
-// ---- Comps de TFT ----
+// ---- Comps de TFT (DESHABILITADO) ----
 // Las calcula el worker grief-tft con partidas reales de Challenger; aqui solo
 // se pintan. Se guarda la ultima respuesta para que la vista abra al instante
 // (y siga sirviendo algo si el worker no contesta).
+//
+// La vista no es accesible: el unico dato crudo de TFT lo da la API de Riot y
+// nuestra clave de desarrollo caduca cada 24 h, asi que el worker devolvia 401
+// y la pantalla salia siempre vacia. Todo esto queda dormido hasta que haya una
+// Personal API Key; el enganche al menu esta comentado al final del archivo.
 const COMPS_URL = "https://grief-tft.studio-iris2026.workers.dev/comps";
 const COSTES = { 1: "#7a8894", 2: "#46b083", 3: "#3fb7c9", 4: "#b18be8", 5: "#e8c35c" };
 let compsDatos = null;
@@ -1005,16 +1010,20 @@ $("menu-acerca").addEventListener("click", async () => {
     if (span) span.textContent = `v${version}`;
   } catch {}
 });
-$("menu-comps").addEventListener("click", () => {
-  cerrarMenu();
-  abrirComps();
-});
-$("comps-cerrar").addEventListener("click", () => {
-  $("comps").hidden = true;
-  if (ultimoEstado) pintar(ultimoEstado); // vuelve a la partida, al perfil o al vacio
-});
-$("comps-tier").addEventListener("change", pintarComps);
-$("comps-carry").addEventListener("change", pintarComps);
+// Las comps de TFT estan DESHABILITADAS: el worker que las calcula necesita una
+// clave de Riot que no tenemos (ver el bloque "Comps de TFT" mas arriba). El
+// codigo y la seccion siguen aqui; para reactivarlas basta devolver el boton
+// #menu-comps al menu de index.html y descomentar estos cuatro listeners.
+// $("menu-comps").addEventListener("click", () => {
+//   cerrarMenu();
+//   abrirComps();
+// });
+// $("comps-cerrar").addEventListener("click", () => {
+//   $("comps").hidden = true;
+//   if (ultimoEstado) pintar(ultimoEstado); // vuelve a la partida, al perfil o al vacio
+// });
+// $("comps-tier").addEventListener("change", pintarComps);
+// $("comps-carry").addEventListener("change", pintarComps);
 $("menu-dota").addEventListener("click", () => {
   cerrarMenu();
   abrirDota();

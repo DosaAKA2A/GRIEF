@@ -18,6 +18,9 @@ PARTIDAS_RONDA = "30" # tope de partidas nuevas por ronda (limite de subpeticion
 binding = "COMPS"
 id = "963d2be5ffa143c3bcdda6d65fcc3ab9"
 
-# Una ronda cada media hora: la muestra crece sola sin rozar ningun limite.
+# Muestreo APAGADO: sin una Personal API Key de Riot cada ronda termina en 401,
+# asi que el cron solo gastaba peticiones. Para reactivarlo, devolver la linea
+# de abajo (una ronda cada media hora: la muestra crece sola sin rozar ningun
+# limite) y volver a desplegar.
 [triggers]
-crons = ["*/30 * * * *"]
+crons = []
