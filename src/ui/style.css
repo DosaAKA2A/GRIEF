@@ -1283,12 +1283,15 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 }
 .dota-item {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.7rem 0.95rem;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.85rem 1rem;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--linea);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
 }
+.dota-item-info { display: grid; gap: 0.28rem; min-width: 0; }
 .dota-item-cab { display: flex; align-items: baseline; gap: 0.6rem; }
 .dota-item-nombre {
   font-family: var(--display);
@@ -1313,7 +1316,7 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   color: var(--apagado);
 }
 .dota-item-partida { color: var(--tenue); }
-.dota-item-acciones { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+.dota-item-acciones { display: grid; gap: 0.4rem; justify-items: stretch; }
 
 .dota-vacio {
   font-family: var(--mono);
@@ -1341,4 +1344,40 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   font-size: 0.68rem;
   line-height: 1.4;
   color: var(--tenue);
+}
+
+/* Jerarquia de botones: la accion principal es solida, el resto se aparta */
+.dota-boton--usar {
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 0.62rem 1.15rem;
+  color: var(--fondo);
+  background: var(--rojo);
+  border-color: var(--rojo);
+  white-space: nowrap;
+}
+.dota-boton--usar:hover { background: #ff6470; border-color: #ff6470; color: var(--fondo); }
+.dota-boton--guardar {
+  color: var(--fondo);
+  background: var(--hueso);
+  border-color: var(--hueso);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dota-boton--guardar:hover { background: #fff; border-color: #fff; color: var(--fondo); }
+.dota-boton--tenue {
+  border-color: transparent;
+  color: var(--tenue);
+  font-size: 0.55rem;
+  padding: 0.3rem 0.5rem;
+}
+.dota-boton--tenue:hover { color: var(--rojo); border-color: transparent; }
+
+.dota-titulo-lista {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  font-weight: 500;
 }

@@ -598,13 +598,15 @@ function tarjetaPerfilDota(p) {
   const enUso = cuenta && cuenta.aplicado === p.id;
   const li = el("li", "dota-item" + (enUso ? " dota-item--activo" : ""));
 
+  // Izquierda: que es este preset. Derecha: la accion, una sola y destacada.
+  const info = el("div", "dota-item-info");
   const cab = el("div", "dota-item-cab");
   cab.append(el("span", "dota-item-nombre", p.nombre ?? p.id));
   if (enUso) cab.append(el("span", "dota-item-etiqueta", "En uso"));
-  li.append(cab);
+  info.append(cab);
 
   const capas = p.capas ?? {};
-  li.append(
+  info.append(
     el(
       "span",
       "dota-item-detalle",
@@ -612,24 +614,24 @@ function tarjetaPerfilDota(p) {
     )
   );
   const heroes = resumenHeroes(capas.heroes);
-  if (heroes) li.append(el("span", "dota-item-heroes", heroes));
+  if (heroes) info.append(el("span", "dota-item-heroes", heroes));
 
   const acciones = el("div", "dota-item-acciones");
   const aplicar = el(
     "button",
-    "dota-boton dota-boton--primario",
-    cuenta ? `Usar en ${cuenta.persona ?? cuenta.id}` : "Usar"
+    "dota-boton dota-boton--usar",
+    enUso ? "Volver a aplicar" : cuenta ? `Usar en ${cuenta.persona ?? cuenta.id}` : "Usar"
   );
   aplicar.type = "button";
   aplicar.disabled = dotaOcupado || !cuenta;
   aplicar.addEventListener("click", () => aplicarPerfilDota(p));
-  const borrar = el("button", "dota-boton", "Borrar");
+  const borrar = el("button", "dota-boton dota-boton--tenue", "Borrar preset");
   borrar.type = "button";
   borrar.disabled = dotaOcupado;
   borrar.addEventListener("click", () => borrarPerfilDota(p));
   acciones.append(aplicar, borrar);
-  li.append(acciones);
 
+  li.append(info, acciones);
   return li;
 }
 
@@ -681,7 +683,7 @@ function pintarDota() {
           el(
             "li",
             "dota-vacio",
-            "Configura los controles en Dota como los quieras, cierra el juego y guárdalos aquí con un nombre."
+            "Todavía no tienes presets. Deja los controles como te gusten en Dota, cierra el juego y guárdalos aquí arriba con un nombre."
           ),
         ])
   );

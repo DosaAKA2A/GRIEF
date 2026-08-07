@@ -318,10 +318,11 @@ export async function listarPerfiles() {
   const perfiles = [];
   for (const d of dirs) {
     if (!d.isDirectory()) continue;
-    let meta = {};
+    let meta = null;
     try {
       meta = JSON.parse(await readFile(join(DIR_PERFILES, d.name, "perfil.json"), "utf8"));
     } catch {}
+    if (!meta?.nombre) continue; // carpeta suelta: no es un preset
     perfiles.push({ id: d.name, ...meta, capas: await capasDe(join(DIR_PERFILES, d.name, ...LST.split("/"))) });
   }
   perfiles.sort((a, b) => String(b.guardado ?? "").localeCompare(String(a.guardado ?? "")));
