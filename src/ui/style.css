@@ -92,6 +92,38 @@ body::before {
   border-color: var(--apagado);
 }
 
+/* Plataformas: conmutador a la derecha de la barra. Riot son los trackers,
+   Steam los controles de Dota. Misma altura que el boton de menu para no
+   mover el alto de la barra (el lienzo mide 1134/666 y no perdona). */
+.plataformas {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: 0.25rem;
+}
+.plat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--linea);
+  color: var(--apagado);
+  cursor: pointer;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.plat svg { width: 1.05rem; height: 1.05rem; display: block; }
+.plat:hover { color: var(--hueso); border-color: var(--apagado); }
+/* Seleccionada: se marca con el rojo de la marca, pero sin el degradado, que
+   esta reservado para las acciones (capturar, actualizar). */
+.plat[aria-pressed="true"] {
+  color: var(--hueso);
+  border-color: var(--rojo);
+  background: rgba(255, 70, 85, 0.12);
+}
+
 .menu-panel {
   position: absolute;
   top: 3.1rem;

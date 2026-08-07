@@ -792,10 +792,27 @@ function borrarPerfilDota(p) {
   });
 }
 
+// ---- Conmutador de plataforma ----
+// Los dos botones de la barra son la unica navegacion entre mundos: Riot son
+// los trackers (Valorant, LoL, TFT) y Steam los controles de Dota. El estado
+// visual sale siempre de aqui; nadie toca aria-pressed por su cuenta.
+function marcarPlataforma(cual) {
+  $("plat-riot").setAttribute("aria-pressed", String(cual === "riot"));
+  $("plat-steam").setAttribute("aria-pressed", String(cual === "steam"));
+}
+
+function abrirRiot() {
+  $("dota").hidden = true;
+  marcarPlataforma("riot");
+  // Vuelve a lo que hubiera: la partida en curso, tu perfil o la pantalla vacia.
+  if (ultimoEstado) pintar(ultimoEstado);
+}
+
 function abrirDota() {
   for (const id of ["vacio", "perfil", "equipos", "fase", "comps"]) $(id).hidden = true;
   $("dota").hidden = false;
   $("juego").textContent = "Dota 2 · Perfiles de controles";
+  marcarPlataforma("steam");
   dotaAviso(null);
   pintarDota();
   cargarDota();
@@ -1024,13 +1041,13 @@ $("menu-acerca").addEventListener("click", async () => {
 // });
 // $("comps-tier").addEventListener("change", pintarComps);
 // $("comps-carry").addEventListener("change", pintarComps);
-$("menu-dota").addEventListener("click", () => {
+$("plat-riot").addEventListener("click", () => {
+  cerrarMenu();
+  abrirRiot();
+});
+$("plat-steam").addEventListener("click", () => {
   cerrarMenu();
   abrirDota();
-});
-$("dota-cerrar").addEventListener("click", () => {
-  $("dota").hidden = true;
-  if (ultimoEstado) pintar(ultimoEstado);
 });
 $("dota-cuenta").addEventListener("change", pintarDota);
 $("dota-nuevo").addEventListener("click", guardarPerfilDota);
