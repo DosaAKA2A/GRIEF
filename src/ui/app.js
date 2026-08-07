@@ -924,14 +924,34 @@ async function estadoVersion() {
   };
 }
 
+// El chip del pie es la version y, solo cuando hay algo que instalar, el boton
+// de actualizar. Antes el aviso era un boton aparte arriba en la barra que
+// ocupaba sitio permanente para no decir nada el 99% del tiempo.
+let versionLocal = null;
+let versionNueva = null; // { remota, url } cuando la release es mas reciente
+
+function pintarVersion() {
+  const chip = $("pie-version");
+  if (!versionLocal) return;
+  if (versionNueva) {
+    chip.textContent = `Actualizar a v${versionNueva.remota}`;
+    chip.href = versionNueva.url;
+    chip.classList.add("pie-version--nueva");
+    chip.dataset.tip = `Estás en la v${versionLocal}. Se descarga e instala sola, y la app se reinicia.`;
+  } else {
+    chip.textContent = `v${versionLocal}`;
+    chip.removeAttribute("href"); // sin href no es pulsable: en reposo es solo texto
+    chip.classList.remove("pie-version--nueva");
+    delete chip.dataset.tip;
+  }
+}
+
 async function revisarActualizacion() {
   try {
     const v = await estadoVersion();
-    if (!v.nueva) return;
-    const boton = $("actualizar");
-    boton.textContent = `Actualizar a v${v.remota}`;
-    boton.href = v.url;
-    boton.hidden = false;
+    versionLocal = v.local;
+    versionNueva = v.nueva ? { remota: v.remota, url: v.url } : null;
+    pintarVersion();
   } catch {
     // sin red o sin release: no molestamos
   }
@@ -970,7 +990,8 @@ if (window.grief?.encuadrar) {
   fetch("/version")
     .then((r) => r.json())
     .then(({ version }) => {
-      $("pie-version").textContent = `v${version}`;
+      versionLocal = version;
+      pintarVersion(); // si el chequeo ya encontro release, no lo pisa
     })
     .catch(() => {});
 }
@@ -1071,8 +1092,9 @@ function avisoActualizacion(texto) {
   const estado = $("menu-estado");
   estado.hidden = false;
   estado.replaceChildren(texto);
-  const boton = $("actualizar");
-  if (!boton.hidden) boton.textContent = texto;
+  // El progreso se cuenta en el propio chip, que es de donde salio la orden.
+  const chip = $("pie-version");
+  if (chip.classList.contains("pie-version--nueva")) chip.textContent = texto;
 }
 
 function enlaceDescarga(url, version) {
@@ -1091,7 +1113,7 @@ async function instalarActualizacion(v) {
   try {
     const res = await window.grief.actualizar();
     if (res?.portable) {
-      const url = v?.url ?? $("actualizar").href ?? "https://github.com/DosaAKA2A/GRIEF/releases/latest";
+      const url = v?.url ?? versionNueva?.url ?? "https://github.com/DosaAKA2A/GRIEF/releases/latest";
       $("menu-estado").hidden = false;
       $("menu-estado").replaceChildren("La versión portable no se actualiza sola. ", enlaceDescarga(url, v?.remota));
       instalando = false;
@@ -1106,11 +1128,12 @@ async function instalarActualizacion(v) {
 
 window.grief?.onProgreso?.((pct) => avisoActualizacion(`Descargando actualización... ${pct}%`));
 
-// El boton de la barra: instala dentro de la app; en navegador es un enlace.
-$("actualizar").addEventListener("click", (ev) => {
-  if (!window.grief?.actualizar) return;
+// El chip del pie: instala dentro de la app; en navegador es un enlace. En
+// reposo no tiene href, asi que un clic ahi no hace nada.
+$("pie-version").addEventListener("click", (ev) => {
+  if (!versionNueva || !window.grief?.actualizar) return;
   ev.preventDefault();
-  instalarActualizacion(null);
+  instalarActualizacion(versionNueva);
 });
 
 // Actualizar app desde el menu: chequeo bajo demanda + instalacion integrada.
@@ -1121,6 +1144,9 @@ $("menu-actualizar").addEventListener("click", async () => {
   estado.replaceChildren("Buscando actualización...");
   try {
     const v = await estadoVersion();
+    versionLocal = v.local;
+    versionNueva = v.nueva ? { remota: v.remota, url: v.url } : null;
+    pintarVersion(); // el chequeo a mano deja el chip como debe quedar
     if (!v.nueva) {
       estado.replaceChildren(`Estás en la última versión (v${v.local}).`);
     } else if (window.grief?.actualizar) {

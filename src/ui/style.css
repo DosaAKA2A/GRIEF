@@ -286,24 +286,6 @@ body::before {
   50% { opacity: 0.3; }
 }
 
-/* Boton de actualizacion: solo aparece cuando hay una version nueva */
-.actualizar {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-weight: 600;
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--fondo);
-  background: linear-gradient(120deg, #ff2e4d, #ff4655 55%, #ff9a3d);
-  padding: 0.4rem 0.85rem;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
-  transition: filter 0.15s;
-}
-.actualizar:hover { filter: brightness(1.15); }
-.actualizar:not([hidden]) ~ .estado { margin-left: 1rem; }
-
 .estado {
   margin-left: auto;
   font-family: var(--mono);
@@ -1110,17 +1092,28 @@ body::before {
   padding: 0.45rem 1.5rem;
   border-top: 1px solid var(--linea);
 }
+/* El chip de version hace de las dos cosas: en reposo solo dice que version
+   corres; con release nueva se rellena y pasa a ser el boton de actualizar.
+   Sin href no es pulsable, asi que el estado normal es inerte de verdad. */
 .pie-version {
   font-family: var(--mono);
   font-weight: 600;
   font-size: 0.6rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  text-decoration: none;
   color: var(--rojo);
   border: 1px solid var(--rojo);
   padding: 0.16rem 0.5rem;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+  transition: background 0.15s, color 0.15s;
 }
+.pie-version--nueva {
+  color: var(--fondo);
+  background: var(--rojo);
+  cursor: pointer;
+}
+.pie-version--nueva:hover { background: #ff6070; }
 .pie-acciones { display: flex; align-items: center; gap: 0.55rem; }
 .pie-aviso {
   font-family: var(--mono);

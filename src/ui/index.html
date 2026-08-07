@@ -16,7 +16,6 @@
     <div id="fase" class="fase" hidden>
       <i class="fase-punto"></i><span id="fase-texto"></span>
     </div>
-    <a id="actualizar" class="actualizar" hidden target="_blank" rel="noopener">Actualizar</a>
     <div id="estado" class="estado">Conectando...</div>
     <!-- Conmutador de plataforma: Riot son los trackers, Steam los controles de Dota -->
     <div class="plataformas" role="group" aria-label="Plataforma">
@@ -187,7 +186,8 @@
   </main>
 
   <footer id="pie" class="pie" hidden>
-    <span id="pie-version" class="pie-version"></span>
+    <!-- Es la version; solo cuando hay release nueva se vuelve el boton de actualizar -->
+    <a id="pie-version" class="pie-version" target="_blank" rel="noopener"></a>
     <div class="pie-acciones">
       <span id="pie-aviso" class="pie-aviso" hidden></span>
       <button id="pie-encuadre" class="pie-boton" aria-label="Encuadre perfecto" title="Encuadre perfecto">
