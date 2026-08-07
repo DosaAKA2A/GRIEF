@@ -1,13 +1,17 @@
-// Perfiles de controles de Dota 2: guardar la configuracion tal como esta
-// ahora y volver a ponerla en cualquier cuenta de Steam de esta computadora.
+// Perfiles de controles de Dota 2: guardas tu configuracion con un nombre y la
+// aplicas a la cuenta de Steam que tengas abierta, sin copiar carpetas a mano.
 //
 // Dota guarda los controles fuera del juego, en el arbol por usuario de Steam:
 //   userdata\<steamid3>\570\remote\  -> se sincroniza con Steam Cloud
 //   userdata\<steamid3>\570\local\   -> solo esta maquina
-// Un "perfil" aqui es una copia de esos archivos. Como no llevan nada atado a
-// la cuenta, la copia de una cuenta sirve tal cual en otra.
+// Nada de eso va atado a la cuenta, asi que un perfil sirve igual en otra.
+//
+// En disco:
+//   %APPDATA%\GRIEF\dota-perfiles\perfiles\<slug>\    los que tu guardas y ves
+//   %APPDATA%\GRIEF\dota-perfiles\respaldos\<cuenta>\ copias internas (Deshacer)
+//   %APPDATA%\GRIEF\dota-perfiles\estado.json         que perfil hay puesto
 import { execFile, spawn } from "node:child_process";
-import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
@@ -15,16 +19,12 @@ import { promisify } from "node:util";
 
 const ejecutar = promisify(execFile);
 const APPID = "570";
+const RESPALDOS_POR_CUENTA = 5; // suficiente para deshacer sin acumular basura
 
-// Archivos que forman un perfil, relativos a userdata\<id>\570\. Solo
-// configuracion: nada de estadisticas, ultima partida ni logos de equipo, que
-// cambian cada rato y no son parte de "como juego".
-//
-// Dota tiene dos capas de controles: los globales (valen juegues lo que
-// juegues) y los de cada heroe (teclas propias para sus habilidades). Las dos
-// viajan siempre juntas: un perfil es la configuracion completa, no media.
-// Dentro del .lst conviven en bloques distintos —"Keys" e "Items" son los
-// globales, "Units" son los de cada heroe— y por eso basta copiar el archivo.
+// Dota tiene dos capas de controles: los globales y los de cada heroe. Las dos
+// viajan juntas: un perfil es la configuracion completa, no media. Dentro del
+// .lst conviven en bloques distintos ("Keys" e "Items" son los globales,
+// "Units" son los de cada heroe), por eso basta con copiar el archivo.
 export const LST = "remote/cfg/dotakeys_personal.lst";
 
 const ARCHIVOS = [
@@ -43,179 +43,76 @@ const ARCHIVOS = [
   "remote/cfg/saved_sets.kv", // por heroe: sets de aspecto
 ];
 
-// Raiz de los perfiles guardados. Fuera del repo y fuera de Steam: sobrevive a
-// reinstalaciones del juego y a las actualizaciones de la app.
 export const RAIZ = join(process.env.APPDATA ?? join(homedir(), ".config"), "GRIEF", "dota-perfiles");
+const DIR_PERFILES = join(RAIZ, "perfiles");
+const DIR_RESPALDOS = join(RAIZ, "respaldos");
+const ESTADO = join(RAIZ, "estado.json");
+
+// ---- Steam ----
 
 function steamPath() {
-  // El registro es la fuente fiable; la ruta clasica es solo el respaldo.
   const candidatos = [
-    process.env.ProgramFiles ? join(process.env.ProgramFiles, "Steam") : null,
     process.env["ProgramFiles(x86)"] ? join(process.env["ProgramFiles(x86)"], "Steam") : null,
+    process.env.ProgramFiles ? join(process.env.ProgramFiles, "Steam") : null,
     "C:\\Program Files (x86)\\Steam",
   ].filter(Boolean);
   return candidatos.find((p) => existsSync(join(p, "userdata"))) ?? null;
 }
 
-async function steamPathRegistro() {
+async function valorRegistro(clave, nombre) {
   try {
-    const { stdout } = await ejecutar("reg", ["query", "HKCU\\Software\\Valve\\Steam", "/v", "SteamPath"]);
-    const m = stdout.match(/SteamPath\s+REG_SZ\s+(.+)/i);
-    if (m) {
-      const ruta = m[1].trim().replace(/\//g, "\\");
-      if (existsSync(join(ruta, "userdata"))) return ruta;
-    }
-  } catch {}
+    const { stdout } = await ejecutar("reg", ["query", clave, "/v", nombre]);
+    const m = stdout.match(new RegExp(`${nombre}\\s+REG_\\w+\\s+(.+)`, "i"));
+    return m ? m[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function steamPathRegistro() {
+  const v = await valorRegistro("HKCU\\Software\\Valve\\Steam", "SteamPath");
+  if (v) {
+    const ruta = v.replace(/\//g, "\\");
+    if (existsSync(join(ruta, "userdata"))) return ruta;
+  }
   return steamPath();
 }
 
-// Cuenta con la que Steam esta abierto ahora mismo (SteamID3). Es el dato que
-// evita el error clasico: aplicar un perfil "a mi sesion" y mandarlo sin
-// querer a otra cuenta. Devuelve null con Steam cerrado.
-async function cuentaActiva() {
-  try {
-    const { stdout } = await ejecutar("reg", [
-      "query",
-      "HKCU\\Software\\Valve\\Steam\\ActiveProcess",
-      "/v",
-      "ActiveUser",
-    ]);
-    const m = stdout.match(/ActiveUser\s+REG_DWORD\s+0x([0-9a-f]+)/i);
-    const id = m ? parseInt(m[1], 16) : 0;
-    return id > 0 ? String(id) : null;
-  } catch {
-    return null;
+async function steamExe() {
+  const v = await valorRegistro("HKCU\\Software\\Valve\\Steam", "SteamExe");
+  if (v) {
+    const ruta = v.replace(/\//g, "\\");
+    if (existsSync(ruta)) return ruta;
   }
-}
-
-// El nombre visible de la cuenta esta en su localconfig.vdf.
-async function personaDe(dirUsuario) {
-  try {
-    const vdf = await readFile(join(dirUsuario, "config", "localconfig.vdf"), "utf8");
-    const m = vdf.match(/"PersonaName"\s+"([^"]+)"/);
-    if (m) return m[1];
-  } catch {}
-  return null;
-}
-
-// last_match.dat es KeyValues binario: el id va como uint64 LE justo despues
-// de la clave "last_match_id\0". Sirve para saber con que controles se jugo.
-async function ultimaPartida(appDir) {
-  try {
-    const buf = await readFile(join(appDir, "remote", "cfg", "last_match.dat"));
-    const clave = Buffer.from("last_match_id\0", "ascii");
-    const i = buf.indexOf(clave);
-    if (i < 0 || i + clave.length + 8 > buf.length) return null;
-    const id = buf.readBigUInt64LE(i + clave.length);
-    return id > 0n ? id.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-// Nombre del layout tal como lo llama el propio Dota (campo "Name" del .lst).
-async function nombreLayout(rutaLst) {
-  try {
-    const texto = await readFile(rutaLst, "utf8");
-    const m = texto.match(/^\s*"Name"\s+"([^"]*)"/m);
-    return m ? m[1] : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function listarCuentas() {
   const steam = await steamPathRegistro();
-  if (!steam) return [];
-  const userdata = join(steam, "userdata");
-  let dirs = [];
+  const candidato = steam ? join(steam, "steam.exe") : null;
+  return candidato && existsSync(candidato) ? candidato : null;
+}
+
+// Cuenta con la que Steam esta abierto ahora (SteamID3). null con Steam cerrado.
+async function cuentaActiva() {
+  const v = await valorRegistro("HKCU\\Software\\Valve\\Steam\\ActiveProcess", "ActiveUser");
+  const id = v ? parseInt(v.replace(/^0x/i, ""), 16) : 0;
+  return id > 0 ? String(id) : null;
+}
+
+async function procesosAbiertos() {
   try {
-    dirs = await readdir(userdata, { withFileTypes: true });
+    const { stdout } = await ejecutar("tasklist", ["/fo", "csv", "/nh"]);
+    const bajo = stdout.toLowerCase();
+    return { dota: bajo.includes('"dota2.exe"'), steam: bajo.includes('"steam.exe"') };
   } catch {
-    return [];
+    return { dota: false, steam: false };
   }
-  const activa = await cuentaActiva();
-  const cuentas = [];
-  for (const d of dirs) {
-    if (!d.isDirectory()) continue;
-    const appDir = join(userdata, d.name, APPID);
-    if (!existsSync(appDir)) continue;
-    const lst = join(appDir, "remote", "cfg", "dotakeys_personal.lst");
-    let tamano = 0;
-    let tocado = null;
-    try {
-      const s = await stat(lst);
-      tamano = s.size;
-      tocado = s.mtimeMs;
-    } catch {}
-    cuentas.push({
-      id: d.name,
-      persona: await personaDe(join(userdata, d.name)),
-      appDir,
-      layout: await nombreLayout(lst),
-      bytes: tamano,
-      tocado,
-      ultimaPartida: await ultimaPartida(appDir),
-      capas: await capasDe(lst),
-      activa: d.name === activa, // la sesion de Steam abierta ahora
-    });
-  }
-  // Primero la cuenta con la que Steam esta abierto: es a la que casi siempre
-  // se quiere aplicar. Detras, las demas por configuracion tocada mas
-  // recientemente. Ordenar por fecha a secas ponia arriba la cuenta de la que
-  // acabas de guardar el perfil, que es justo la que NO es el destino.
-  cuentas.sort((a, b) => Number(b.activa) - Number(a.activa) || (b.tocado ?? 0) - (a.tocado ?? 0));
-  return cuentas;
 }
 
-// Nombre de carpeta seguro a partir de lo que escriba el usuario.
-function slug(nombre) {
-  const limpio = String(nombre ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9 _-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .slice(0, 48);
-  return limpio || null;
-}
+// ---- Lectura del .lst (KeyValues de Valve, un token por linea) ----
 
-export async function listarPerfiles() {
-  let dirs = [];
-  try {
-    dirs = await readdir(RAIZ, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  const perfiles = [];
-  for (const d of dirs) {
-    if (!d.isDirectory()) continue;
-    let meta = {};
-    try {
-      meta = JSON.parse(await readFile(join(RAIZ, d.name, "perfil.json"), "utf8"));
-    } catch {}
-    const lst = join(RAIZ, d.name, ...LST.split("/"));
-    let bytes = 0;
-    try {
-      bytes = (await stat(lst)).size;
-    } catch {}
-    // Las capas se releen del propio archivo guardado: valen tambien para los
-    // perfiles creados antes de que se anotaran en perfil.json.
-    perfiles.push({ id: d.name, bytes, ...meta, capas: await capasDe(lst) });
-  }
-  perfiles.sort((a, b) => String(b.guardado ?? "").localeCompare(String(a.guardado ?? "")));
-  return perfiles;
-}
-
-// ---- Lectura del .lst ----
-// KeyValues de Valve, un token por linea. Se trocea en piezas de primer nivel
-// solo para mirar dentro (que heroes traen teclas propias); el archivo se
-// copia tal cual, nunca se reserializa.
 function trocear(texto) {
   const lineas = texto.split(/\r?\n/);
   let i = 0;
   while (i < lineas.length && lineas[i].trim() !== "{") i++;
-  if (i >= lineas.length) return null; // no es el formato esperado
+  if (i >= lineas.length) return null;
   let fin = lineas.length - 1;
   while (fin > i && lineas[fin].trim() !== "}") fin--;
 
@@ -244,32 +141,98 @@ function trocear(texto) {
       j = k + 1;
       continue;
     }
-    piezas.push({ clave: null, lineas: [linea] }); // vacios y lo que no encaje
+    piezas.push({ clave: null, lineas: [linea] });
     j++;
   }
   return { cabecera: lineas.slice(0, i + 1), piezas, cierre: lineas.slice(fin) };
 }
 
-// Que trae un .lst: cuantas teclas globales y que heroes tienen las suyas.
-// Es lo que la UI enseña para dejar claro que un perfil lleva las dos capas.
+// Que trae un .lst: cuantos controles globales y que heroes tienen los suyos.
 export function capasDelLst(texto) {
   const t = trocear(texto);
-  if (!t) return { globales: 0, items: 0, heroes: [] };
+  if (!t) return { globales: 0, items: 0, heroes: [], heroBindings: false };
 
-  const cuentaHijos = (clave, patron) => {
+  const hijos = (clave, patron) => {
     const bloque = t.piezas.find((p) => p.clave === clave);
     if (!bloque) return [];
     return bloque.lineas.map((l) => l.match(patron)).filter(Boolean).map((m) => m[1]);
   };
+  const escalar = (clave) => t.piezas.find((p) => p.clave === clave)?.lineas[0]?.match(/"([^"]*)"\s*$/)?.[1];
 
-  const heroes = cuentaHijos("Units", /^\t\t"npc_dota_(?:hero_)?([a-z0-9_]+)"\s*$/).map((n) =>
-    n.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-  );
   return {
-    globales: cuentaHijos("Keys", /^\t\t"([^"]+)"\s*$/).length,
-    items: cuentaHijos("Items", /^\t\t"(item_[^"]+)"\s*$/).length,
-    heroes,
+    globales: hijos("Keys", /^\t\t"([^"]+)"\s*$/).length,
+    items: hijos("Items", /^\t\t"(item_[^"]+)"\s*$/).length,
+    heroes: hijos("Units", /^\t\t"npc_dota_(?:hero_)?([a-z0-9_]+)"\s*$/).map((n) =>
+      n.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    ),
+    heroBindings: escalar("UseHeroBindings") === "1",
   };
+}
+
+// Enciende "UseHeroBindings". Sin esto Dota ignora las teclas por heroe y usa
+// el layout global, aunque el bloque "Units" este lleno: es el interruptor
+// maestro de la pestaña HEROES. Se toca esa linea y nada mas.
+export function encenderHeroBindings(texto) {
+  if (/^\t"UseHeroBindings"\s+"1"\s*$/m.test(texto)) return texto;
+  if (/^\t"UseHeroBindings"\s+"\d*"\s*$/m.test(texto)) {
+    return texto.replace(/^\t"UseHeroBindings"\s+"\d*"\s*$/m, '\t"UseHeroBindings"\t\t"1"');
+  }
+  // No estaba: se agrega justo despues del nombre del layout.
+  return texto.replace(/^(\t"Name"\s+"[^"]*"\s*)$/m, '$1\r\n\t"UseHeroBindings"\t\t"1"');
+}
+
+// ---- Almacen ----
+
+async function leerEstado() {
+  try {
+    return JSON.parse(await readFile(ESTADO, "utf8"));
+  } catch {
+    return { aplicado: {} };
+  }
+}
+
+async function guardarEstado(estado) {
+  await mkdir(RAIZ, { recursive: true });
+  await writeFile(ESTADO, JSON.stringify(estado, null, 2), "utf8");
+}
+
+// Los perfiles vivian sueltos en la raiz, mezclados con los respaldos
+// automaticos (los "Antes de ..."), que ensuciaban la lista. Se reordena una
+// vez: los tuyos a perfiles\, los automaticos fuera.
+async function migrar() {
+  if (!existsSync(RAIZ)) return;
+  let dirs = [];
+  try {
+    dirs = await readdir(RAIZ, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  await mkdir(DIR_PERFILES, { recursive: true });
+  for (const d of dirs) {
+    if (!d.isDirectory() || d.name === "perfiles" || d.name === "respaldos") continue;
+    const viejo = join(RAIZ, d.name);
+    if (!existsSync(join(viejo, "perfil.json"))) continue;
+    let meta = {};
+    try {
+      meta = JSON.parse(await readFile(join(viejo, "perfil.json"), "utf8"));
+    } catch {}
+    if (meta.automatico) {
+      await rm(viejo, { recursive: true, force: true });
+    } else if (!existsSync(join(DIR_PERFILES, d.name))) {
+      await rename(viejo, join(DIR_PERFILES, d.name));
+    }
+  }
+}
+
+function slug(nombre) {
+  const limpio = String(nombre ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9 _-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 48);
+  return limpio || null;
 }
 
 async function copiarLote(origenBase, destinoBase) {
@@ -285,16 +248,87 @@ async function copiarLote(origenBase, destinoBase) {
   return copiados;
 }
 
-// Capas de un .lst en disco; si no esta, ceros.
 async function capasDe(ruta) {
   try {
     return capasDelLst(await readFile(ruta, "utf8"));
   } catch {
-    return { globales: 0, items: 0, heroes: [] };
+    return { globales: 0, items: 0, heroes: [], heroBindings: false };
   }
 }
 
-export async function guardarPerfil({ cuenta, nombre, automatico = false }) {
+// ---- Cuentas ----
+
+async function personaDe(dirUsuario) {
+  try {
+    const vdf = await readFile(join(dirUsuario, "config", "localconfig.vdf"), "utf8");
+    return vdf.match(/"PersonaName"\s+"([^"]+)"/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function listarCuentas() {
+  const steam = await steamPathRegistro();
+  if (!steam) return [];
+  const userdata = join(steam, "userdata");
+  let dirs = [];
+  try {
+    dirs = await readdir(userdata, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const activa = await cuentaActiva();
+  const estado = await leerEstado();
+  const cuentas = [];
+  for (const d of dirs) {
+    if (!d.isDirectory()) continue;
+    const appDir = join(userdata, d.name, APPID);
+    if (!existsSync(appDir)) continue;
+    const lst = join(appDir, ...LST.split("/"));
+    let tocado = null;
+    try {
+      tocado = (await stat(lst)).mtimeMs;
+    } catch {}
+    cuentas.push({
+      id: d.name,
+      persona: await personaDe(join(userdata, d.name)),
+      appDir,
+      tocado,
+      capas: await capasDe(lst),
+      activa: d.name === activa,
+      aplicado: estado.aplicado?.[d.name] ?? null,
+      puedeDeshacer: existsSync(join(DIR_RESPALDOS, d.name)),
+    });
+  }
+  // La sesion de Steam abierta va primera: es a la que casi siempre se aplica.
+  cuentas.sort((a, b) => Number(b.activa) - Number(a.activa) || (b.tocado ?? 0) - (a.tocado ?? 0));
+  return cuentas;
+}
+
+// ---- Perfiles ----
+
+export async function listarPerfiles() {
+  await migrar();
+  let dirs = [];
+  try {
+    dirs = await readdir(DIR_PERFILES, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const perfiles = [];
+  for (const d of dirs) {
+    if (!d.isDirectory()) continue;
+    let meta = {};
+    try {
+      meta = JSON.parse(await readFile(join(DIR_PERFILES, d.name, "perfil.json"), "utf8"));
+    } catch {}
+    perfiles.push({ id: d.name, ...meta, capas: await capasDe(join(DIR_PERFILES, d.name, ...LST.split("/"))) });
+  }
+  perfiles.sort((a, b) => String(b.guardado ?? "").localeCompare(String(a.guardado ?? "")));
+  return perfiles;
+}
+
+export async function guardarPerfil({ cuenta, nombre }) {
   const cuentas = await listarCuentas();
   const origen = cuentas.find((c) => c.id === String(cuenta));
   if (!origen) throw new Error("Esa cuenta de Steam no tiene datos de Dota 2.");
@@ -302,46 +336,62 @@ export async function guardarPerfil({ cuenta, nombre, automatico = false }) {
   const base = slug(nombre);
   if (!base) throw new Error("Ponle un nombre al perfil.");
 
-  // Nunca pisa uno existente en silencio: si el nombre esta tomado, numera.
   let id = base;
   let n = 2;
-  while (existsSync(join(RAIZ, id))) {
-    id = `${base}-${n++}`;
-  }
+  while (existsSync(join(DIR_PERFILES, id))) id = `${base}-${n++}`;
 
-  const destino = join(RAIZ, id);
+  const destino = join(DIR_PERFILES, id);
   await mkdir(destino, { recursive: true });
   const archivos = await copiarLote(origen.appDir, destino);
-
   const meta = {
     nombre: String(nombre).trim(),
     guardado: new Date().toISOString(),
     cuenta: origen.id,
     persona: origen.persona,
-    layout: origen.layout,
-    ultimaPartida: origen.ultimaPartida,
-    capas: origen.capas, // globales + heroes con teclas propias, para la ficha
-    automatico,
     archivos,
   };
   await writeFile(join(destino, "perfil.json"), JSON.stringify(meta, null, 2), "utf8");
-  return { id, ...meta, bytes: origen.bytes };
+  return { id, ...meta, capas: origen.capas };
 }
 
-// Procesos que pelean por estos archivos. Dota los tiene abiertos y los
-// reescribe al salir; Steam Cloud puede volver a bajar la version del servidor.
-async function procesosAbiertos() {
+export async function borrarPerfil({ perfil }) {
+  const dir = join(DIR_PERFILES, String(perfil));
+  if (!existsSync(join(dir, "perfil.json"))) throw new Error("Ese perfil ya no existe.");
+  await rm(dir, { recursive: true, force: true });
+  const estado = await leerEstado();
+  for (const [cuenta, id] of Object.entries(estado.aplicado ?? {})) {
+    if (id === String(perfil)) delete estado.aplicado[cuenta];
+  }
+  await guardarEstado(estado);
+  return { ok: true };
+}
+
+// ---- Respaldo interno (lo que usa Deshacer; no se muestra como perfil) ----
+
+async function respaldar(cuenta) {
+  const dir = join(DIR_RESPALDOS, cuenta.id, String(cuenta.tocado ?? 0).padStart(16, "0"));
+  await mkdir(dir, { recursive: true });
+  await copiarLote(cuenta.appDir, dir);
+  // Solo se guardan los ultimos: esto es para deshacer, no un historial.
+  const padre = join(DIR_RESPALDOS, cuenta.id);
+  const todos = (await readdir(padre)).sort();
+  for (const viejo of todos.slice(0, Math.max(0, todos.length - RESPALDOS_POR_CUENTA))) {
+    await rm(join(padre, viejo), { recursive: true, force: true });
+  }
+  return dir;
+}
+
+async function ultimoRespaldo(cuentaId) {
+  const padre = join(DIR_RESPALDOS, cuentaId);
   try {
-    const { stdout } = await ejecutar("tasklist", ["/fo", "csv", "/nh"]);
-    const bajo = stdout.toLowerCase();
-    return {
-      dota: bajo.includes('"dota2.exe"'),
-      steam: bajo.includes('"steam.exe"'),
-    };
+    const todos = (await readdir(padre)).sort();
+    return todos.length ? join(padre, todos[todos.length - 1]) : null;
   } catch {
-    return { dota: false, steam: false };
+    return null;
   }
 }
+
+// ---- Acciones ----
 
 export async function estado() {
   const [cuentas, perfiles, procesos] = await Promise.all([
@@ -352,65 +402,10 @@ export async function estado() {
   return { cuentas, perfiles, procesos, raiz: RAIZ };
 }
 
-export async function aplicarPerfil({ perfil, cuenta }) {
-  const origen = join(RAIZ, String(perfil));
-  if (!existsSync(join(origen, "perfil.json"))) throw new Error("Ese perfil ya no existe.");
-
-  const cuentas = await listarCuentas();
-  const destino = cuentas.find((c) => c.id === String(cuenta));
-  if (!destino) throw new Error("Esa cuenta de Steam no tiene datos de Dota 2.");
-
-  const procesos = await procesosAbiertos();
-  if (procesos.dota) {
-    // Con el juego abierto no sirve de nada: Dota tiene los controles en
-    // memoria y los vuelve a escribir al cerrar, borrando lo que se copie.
-    throw new Error("Cierra Dota 2 antes de aplicar un perfil: al salir reescribe los controles.");
-  }
-
-  // Red de seguridad: lo que habia se guarda solo antes de pisarlo.
-  let respaldo = null;
-  try {
-    respaldo = await guardarPerfil({
-      cuenta: destino.id,
-      nombre: `Antes de ${perfil}`,
-      automatico: true,
-    });
-  } catch {}
-
-  const archivos = await copiarLote(origen, destino.appDir);
-  // Se comprueba sobre lo ya escrito: confirma que las dos capas llegaron.
-  const capas = await capasDe(join(destino.appDir, ...LST.split("/")));
-  return {
-    archivos: archivos.length,
-    capas,
-    respaldo: respaldo?.id ?? null,
-    steamAbierto: procesos.steam,
-    destino: { id: destino.id, persona: destino.persona, activa: destino.activa },
-  };
-}
-
-// Ruta de steam.exe: el propio Steam la deja en el registro al instalarse.
-async function steamExe() {
-  try {
-    const { stdout } = await ejecutar("reg", ["query", "HKCU\\Software\\Valve\\Steam", "/v", "SteamExe"]);
-    const m = stdout.match(/SteamExe\s+REG_SZ\s+(.+)/i);
-    if (m) {
-      const ruta = m[1].trim().replace(/\//g, "\\");
-      if (existsSync(ruta)) return ruta;
-    }
-  } catch {}
-  const steam = await steamPathRegistro();
-  const candidato = steam ? join(steam, "steam.exe") : null;
-  return candidato && existsSync(candidato) ? candidato : null;
-}
-
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Reinicio limpio de Steam. Hace falta despues de aplicar un perfil: Steam
-// tiene en memoria el estado de la nube de esta sesion y al salir puede subir
-// —o volver a bajar— la version vieja por encima de lo que se acaba de copiar.
-// `steam.exe -shutdown` es el apagado ordenado que ofrece el propio cliente:
-// cierra sesion y guarda, nada de matar el proceso.
+// Reinicio limpio de Steam: `steam.exe -shutdown` es el apagado ordenado del
+// propio cliente (cierra sesion y sube la nube), nada de matar el proceso.
 export async function reiniciarSteam() {
   const procesos = await procesosAbiertos();
   if (procesos.dota) {
@@ -422,24 +417,92 @@ export async function reiniciarSteam() {
   let cerrado = false;
   if (procesos.steam) {
     await ejecutar(exe, ["-shutdown"]);
-    // Steam tarda lo suyo en cerrar del todo (sube la nube antes de irse).
     for (let i = 0; i < 60 && !cerrado; i++) {
       await esperar(700);
       cerrado = !(await procesosAbiertos()).steam;
     }
-    if (!cerrado) {
-      throw new Error("Steam no terminó de cerrarse. Ciérralo a mano y vuelve a intentarlo.");
-    }
+    if (!cerrado) throw new Error("Steam no terminó de cerrarse. Ciérralo a mano y reintenta.");
     await esperar(1500); // margen para que suelte sus archivos
   }
-
   spawn(exe, [], { detached: true, stdio: "ignore" }).unref();
   return { ok: true, cerrado };
 }
 
-export async function borrarPerfil({ perfil }) {
-  const dir = join(RAIZ, String(perfil));
-  if (!existsSync(join(dir, "perfil.json"))) throw new Error("Ese perfil ya no existe.");
-  await rm(dir, { recursive: true, force: true });
-  return { ok: true };
+// Escribe el perfil en la cuenta y deja las teclas por heroe encendidas.
+async function volcar(origenDir, cuenta) {
+  const archivos = await copiarLote(origenDir, cuenta.appDir);
+  const lst = join(cuenta.appDir, ...LST.split("/"));
+  let capas = await capasDe(lst);
+  if (capas.heroes.length && !capas.heroBindings) {
+    await writeFile(lst, encenderHeroBindings(await readFile(lst, "utf8")), "utf8");
+    capas = await capasDe(lst);
+  }
+  return { archivos: archivos.length, capas };
+}
+
+// Aplicar es un solo paso de cara al usuario: respalda, escribe, reinicia
+// Steam y vuelve a escribir. Lo ultimo es lo que hace que el perfil siga
+// puesto despues del reinicio, pase lo que pase con la nube.
+export async function aplicarPerfil({ perfil, cuenta }) {
+  const origenDir = join(DIR_PERFILES, String(perfil));
+  if (!existsSync(join(origenDir, "perfil.json"))) throw new Error("Ese perfil ya no existe.");
+
+  const cuentas = await listarCuentas();
+  const destino = cuentas.find((c) => c.id === String(cuenta));
+  if (!destino) throw new Error("Esa cuenta de Steam no tiene datos de Dota 2.");
+
+  const procesos = await procesosAbiertos();
+  if (procesos.dota) {
+    throw new Error("Cierra Dota 2 antes de aplicar: al salir reescribe los controles.");
+  }
+
+  await respaldar(destino);
+  let resultado = await volcar(origenDir, destino);
+
+  let reiniciado = false;
+  if (procesos.steam) {
+    await reiniciarSteam();
+    resultado = await volcar(origenDir, destino); // que sobreviva al reinicio
+    reiniciado = true;
+  }
+
+  const estadoApp = await leerEstado();
+  estadoApp.aplicado = { ...estadoApp.aplicado, [destino.id]: String(perfil) };
+  await guardarEstado(estadoApp);
+
+  return {
+    ...resultado,
+    reiniciado,
+    destino: { id: destino.id, persona: destino.persona },
+  };
+}
+
+// Deshacer: devuelve la cuenta al estado justo anterior al ultimo cambio.
+export async function deshacer({ cuenta }) {
+  const cuentas = await listarCuentas();
+  const destino = cuentas.find((c) => c.id === String(cuenta));
+  if (!destino) throw new Error("Esa cuenta de Steam no tiene datos de Dota 2.");
+
+  const respaldo = await ultimoRespaldo(destino.id);
+  if (!respaldo) throw new Error("No hay nada que deshacer en esta cuenta.");
+
+  const procesos = await procesosAbiertos();
+  if (procesos.dota) {
+    throw new Error("Cierra Dota 2 antes de deshacer: al salir reescribe los controles.");
+  }
+
+  const archivos = await copiarLote(respaldo, destino.appDir);
+  await rm(respaldo, { recursive: true, force: true }); // un paso atras por vez
+
+  if (procesos.steam) await reiniciarSteam();
+
+  const estadoApp = await leerEstado();
+  delete estadoApp.aplicado?.[destino.id];
+  await guardarEstado(estadoApp);
+
+  return {
+    archivos: archivos.length,
+    capas: await capasDe(join(destino.appDir, ...LST.split("/"))),
+    destino: { id: destino.id, persona: destino.persona },
+  };
 }

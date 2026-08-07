@@ -1289,7 +1289,6 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   border: 1px solid var(--linea);
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
 }
-.dota-item--auto { opacity: 0.72; }
 .dota-item-cab { display: flex; align-items: baseline; gap: 0.6rem; }
 .dota-item-nombre {
   font-family: var(--display);
@@ -1326,41 +1325,20 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
   text-align: center;
 }
 
-/* Las dos capas de controles de Dota: globales y por heroe */
-.dota-capas { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.15rem; }
-.dota-capa {
-  font-family: var(--mono);
-  font-size: 0.55rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--claro);
-  border: 1px solid var(--linea);
-  padding: 0.12rem 0.4rem;
-}
+
+
+/* Boton inhabilitado mientras hay una accion en marcha */
+.dota-boton:disabled { opacity: 0.4; cursor: default; }
+.dota-boton:disabled:hover { border-color: var(--linea); color: var(--claro); }
+
+/* Perfil puesto ahora mismo en la cuenta elegida */
+.dota-item--activo { border-color: var(--teal); }
+.dota-item--activo .dota-item-etiqueta { color: var(--teal); border-color: var(--teal); }
+
+/* Nombres de los heroes que trae el perfil */
 .dota-item-heroes {
   font-family: var(--sans);
   font-size: 0.68rem;
   line-height: 1.4;
   color: var(--tenue);
 }
-
-/* Fila de acciones del sistema (reiniciar Steam) */
-.dota-sistema {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--linea);
-  background: var(--panel-2);
-}
-.dota-sistema-texto {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  line-height: 1.5;
-  letter-spacing: 0.04em;
-  color: var(--apagado);
-}
-.dota-boton:disabled { opacity: 0.4; cursor: default; }
-.dota-boton:disabled:hover { border-color: var(--linea); color: var(--claro); }

@@ -562,19 +562,12 @@ function abrirComps() {
 }
 
 // ---- Perfiles de controles de Dota 2 ----
-// Dota guarda los controles en la carpeta de Steam de cada cuenta. Aqui se
-// copian a un lado con un nombre y se vuelven a poner en la cuenta que sea,
-// que es lo que antes habia que hacer a mano con el explorador de archivos.
+// Guardas tus controles con un nombre y los aplicas a la cuenta que tengas
+// abierta. Aplicar es un solo paso: escribe, reinicia Steam y vuelve a
+// escribir. Los respaldos que permiten Deshacer son internos y no se listan.
 
 let dotaDatos = null;
-let reinicioArmado = false; // el boton de Steam pide dos clics: cierra el cliente
-
-function fechaCorta(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-}
+let dotaOcupado = false;
 
 function dotaAviso(texto, clase) {
   const aviso = $("dota-aviso");
@@ -587,50 +580,52 @@ function dotaAviso(texto, clase) {
   aviso.hidden = false;
 }
 
+function cuentaElegida() {
+  return dotaDatos?.cuentas.find((c) => c.id === $("dota-cuenta").value) ?? null;
+}
+
+// Los heroes se enseñan por nombre, pero sin convertir la ficha en un muro:
+// los primeros y cuantos quedan.
+function resumenHeroes(heroes) {
+  if (!heroes?.length) return null;
+  const visibles = heroes.slice(0, 8);
+  const resto = heroes.length - visibles.length;
+  return visibles.join(", ") + (resto > 0 ? ` y ${resto} más` : "");
+}
+
 function tarjetaPerfilDota(p) {
-  const li = el("li", "dota-item" + (p.automatico ? " dota-item--auto" : ""));
+  const cuenta = cuentaElegida();
+  const enUso = cuenta && cuenta.aplicado === p.id;
+  const li = el("li", "dota-item" + (enUso ? " dota-item--activo" : ""));
 
   const cab = el("div", "dota-item-cab");
   cab.append(el("span", "dota-item-nombre", p.nombre ?? p.id));
-  if (p.automatico) cab.append(el("span", "dota-item-etiqueta", "Respaldo automático"));
+  if (enUso) cab.append(el("span", "dota-item-etiqueta", "En uso"));
   li.append(cab);
 
-  const detalle = [
-    p.persona ? `de ${p.persona}` : null,
-    p.layout ? `layout ${p.layout}` : null,
-    p.bytes ? `${(p.bytes / 1024).toFixed(0)} KB` : null,
-    fechaCorta(p.guardado),
-  ].filter(Boolean);
-  li.append(el("span", "dota-item-detalle", detalle.join("  ·  ")));
-
-  // Las dos capas de Dota, siempre juntas: se aplican las dos de golpe.
   const capas = p.capas ?? {};
-  const heroes = capas.heroes ?? [];
-  const fila = el("div", "dota-capas");
-  fila.append(
-    el("span", "dota-capa", `${capas.globales ?? 0} controles globales`),
-    el("span", "dota-capa", heroes.length ? `${heroes.length} héroes con teclas propias` : "sin teclas por héroe")
+  li.append(
+    el(
+      "span",
+      "dota-item-detalle",
+      `${capas.globales ?? 0} controles globales  ·  ${capas.heroes?.length ?? 0} héroes con teclas propias`
+    )
   );
-  li.append(fila);
-  if (heroes.length) li.append(el("span", "dota-item-heroes", heroes.join(", ")));
-
-  if (p.ultimaPartida) {
-    li.append(el("span", "dota-item-partida", `Última partida con estos controles: ${p.ultimaPartida}`));
-  }
+  const heroes = resumenHeroes(capas.heroes);
+  if (heroes) li.append(el("span", "dota-item-heroes", heroes));
 
   const acciones = el("div", "dota-item-acciones");
-  // El boton dice a que cuenta va: aplicar al perfil equivocado es el unico
-  // error que cuesta caro aqui.
-  const destino = dotaDatos?.cuentas.find((c) => c.id === $("dota-cuenta").value);
   const aplicar = el(
     "button",
     "dota-boton dota-boton--primario",
-    destino ? `Aplicar en ${destino.persona ?? destino.id}` : "Aplicar"
+    cuenta ? `Usar en ${cuenta.persona ?? cuenta.id}` : "Usar"
   );
   aplicar.type = "button";
+  aplicar.disabled = dotaOcupado || !cuenta;
   aplicar.addEventListener("click", () => aplicarPerfilDota(p));
   const borrar = el("button", "dota-boton", "Borrar");
   borrar.type = "button";
+  borrar.disabled = dotaOcupado;
   borrar.addEventListener("click", () => borrarPerfilDota(p));
   acciones.append(aplicar, borrar);
   li.append(acciones);
@@ -655,53 +650,40 @@ function pintarDota() {
     ...dotaDatos.cuentas.map((c) => {
       const o = document.createElement("option");
       o.value = c.id;
-      const nombre = c.persona ? `${c.persona} (${c.id})` : c.id;
-      o.textContent = c.activa ? `${nombre} — sesión actual` : nombre;
+      const nombre = c.persona ?? c.id;
+      o.textContent = c.activa ? `${nombre} — sesión abierta` : nombre;
       return o;
     })
   );
-  // Por defecto, la cuenta con la que Steam esta abierto (va primera).
+  // Por defecto, la cuenta con la que Steam esta abierto (viene primera).
   if (elegida && dotaDatos.cuentas.some((c) => c.id === elegida)) select.value = elegida;
 
-  const cuenta = dotaDatos.cuentas.find((c) => c.id === select.value);
+  const cuenta = cuentaElegida();
   $("dota-sub").textContent = cuenta
-    ? [
-        cuenta.layout ? `Layout actual: ${cuenta.layout}` : null,
-        `${cuenta.capas?.globales ?? 0} globales`,
-        `${cuenta.capas?.heroes?.length ?? 0} héroes con teclas propias`,
-      ]
-        .filter(Boolean)
-        .join("  ·  ")
+    ? `${cuenta.capas?.globales ?? 0} controles globales  ·  ${cuenta.capas?.heroes?.length ?? 0} héroes con teclas propias`
     : "Ninguna cuenta de Steam de esta computadora tiene Dota 2.";
 
-  const hayActiva = dotaDatos.cuentas.some((c) => c.activa);
-  if (dotaDatos.procesos?.dota) {
-    dotaAviso("Dota 2 está abierto. Puedes guardar, pero para aplicar un perfil hay que cerrarlo: al salir reescribe los controles.", "ojo");
-  } else if (hayActiva && cuenta && !cuenta.activa) {
-    // El fallo tipico: guardar desde una cuenta y aplicar sin cambiar el
-    // desplegable, que la deja apuntando a la cuenta de origen.
-    const sesion = dotaDatos.cuentas.find((c) => c.activa);
-    dotaAviso(
-      `Ojo: vas a escribir en ${cuenta.persona ?? cuenta.id}, pero Steam está abierto con ${sesion.persona ?? sesion.id}. ` +
-        "Si querías esa, cámbiala en el desplegable.",
-      "ojo"
-    );
-  } else if (dotaDatos.procesos?.steam) {
-    dotaAviso("Steam está abierto. Al aplicar un perfil, reinicia Steam antes de entrar a Dota para que la nube no devuelva la versión vieja.", "ojo");
-  } else {
-    dotaAviso(null);
-  }
+  $("dota-nuevo").disabled = dotaOcupado || !cuenta;
+  const deshacer = $("dota-deshacer");
+  deshacer.hidden = !cuenta?.puedeDeshacer;
+  deshacer.disabled = dotaOcupado;
 
-  // Reiniciar Steam solo tiene sentido con Steam vivo y Dota cerrado.
-  const steamBoton = $("dota-steam");
-  $("dota-sistema").hidden = !dotaDatos.procesos?.steam;
-  steamBoton.disabled = !!dotaDatos.procesos?.dota;
-  if (!reinicioArmado) steamBoton.textContent = "Reiniciar Steam";
+  if (dotaDatos.procesos?.dota) {
+    dotaAviso("Cierra Dota 2 para poder cambiar de perfil: al salir reescribe los controles.", "ojo");
+  } else if (cuenta && !cuenta.activa) {
+    dotaAviso(`Vas a escribir en ${cuenta.persona ?? cuenta.id}, que no es la sesión abierta en Steam.`, "ojo");
+  }
 
   lista.replaceChildren(
     ...(dotaDatos.perfiles.length
       ? dotaDatos.perfiles.map(tarjetaPerfilDota)
-      : [el("li", "dota-vacio", "Todavía no guardas ningún perfil. Configura los controles en Dota como los quieras y dale a guardar.")])
+      : [
+          el(
+            "li",
+            "dota-vacio",
+            "Configura los controles en Dota como los quieras, cierra el juego y guárdalos aquí con un nombre."
+          ),
+        ])
   );
 }
 
@@ -726,88 +708,81 @@ async function accionDota(ruta, cuerpo) {
   return datos;
 }
 
-async function guardarPerfilDota() {
+// Bloquea los botones mientras algo esta en marcha: aplicar reinicia Steam y
+// tarda, y dos ordenes a la vez sobre los mismos archivos no acaban bien.
+async function conBloqueo(fn) {
+  dotaOcupado = true;
+  pintarDota();
+  try {
+    await fn();
+  } finally {
+    dotaOcupado = false;
+    await cargarDota();
+  }
+}
+
+function guardarPerfilDota() {
   const nombre = $("dota-nombre").value.trim();
-  const cuenta = $("dota-cuenta").value;
+  const cuenta = cuentaElegida();
   if (!nombre) {
     dotaAviso("Ponle un nombre al perfil antes de guardarlo.", "error");
     return;
   }
-  if (!cuenta) {
-    dotaAviso("No hay ninguna cuenta seleccionada.", "error");
-    return;
-  }
-  try {
-    const p = await accionDota("/dota/guardar", { cuenta, nombre });
-    $("dota-nombre").value = "";
-    await cargarDota();
-    dotaAviso(`Guardado "${p.nombre}". Ya puedes aplicarlo en cualquier cuenta.`, "ok");
-  } catch (err) {
-    dotaAviso(err.message, "error");
-  }
+  if (!cuenta) return;
+  return conBloqueo(async () => {
+    try {
+      const p = await accionDota("/dota/guardar", { cuenta: cuenta.id, nombre });
+      $("dota-nombre").value = "";
+      dotaAviso(`Guardado "${p.nombre}".`, "ok");
+    } catch (err) {
+      dotaAviso(err.message, "error");
+    }
+  });
 }
 
-async function aplicarPerfilDota(p) {
-  const cuenta = $("dota-cuenta").value;
-  const destino = dotaDatos?.cuentas.find((c) => c.id === cuenta);
-  try {
-    const r = await accionDota("/dota/aplicar", { perfil: p.id, cuenta });
-    await cargarDota();
-    const donde = r.destino?.persona ?? destino?.persona ?? cuenta;
-    const heroes = r.capas?.heroes?.length ?? 0;
-    dotaAviso(
-      `"${p.nombre ?? p.id}" aplicado en ${donde}: ${r.archivos} archivos, ` +
-        `${r.capas?.globales ?? 0} controles globales y ${heroes} héroes con teclas propias.` +
-        (r.respaldo ? " Lo anterior quedó guardado como respaldo." : "") +
-        (r.steamAbierto ? " Dale a Reiniciar Steam aquí abajo antes de entrar a Dota." : ""),
-      "ok"
-    );
-  } catch (err) {
-    dotaAviso(err.message, "error");
-  }
+function aplicarPerfilDota(p) {
+  const cuenta = cuentaElegida();
+  if (!cuenta) return;
+  return conBloqueo(async () => {
+    dotaAviso("Aplicando y reiniciando Steam. Puede tardar medio minuto.", "ojo");
+    try {
+      const r = await accionDota("/dota/aplicar", { perfil: p.id, cuenta: cuenta.id });
+      const heroes = r.capas?.heroes?.length ?? 0;
+      dotaAviso(
+        `"${p.nombre ?? p.id}" puesto en ${r.destino?.persona ?? cuenta.id}: ` +
+          `${r.capas?.globales ?? 0} globales y ${heroes} héroes.` +
+          (r.reiniciado ? " Steam reiniciado; si te pide iniciar sesión, hazlo y entra a Dota." : ""),
+        "ok"
+      );
+    } catch (err) {
+      dotaAviso(err.message, "error");
+    }
+  });
 }
 
-// Reinicio de Steam: cierra el cliente entero, asi que pide un segundo clic.
-let reinicioTimer = null;
-async function reiniciarSteam() {
-  const boton = $("dota-steam");
-  if (!reinicioArmado) {
-    reinicioArmado = true;
-    boton.textContent = "Confirmar: cerrar y abrir Steam";
-    clearTimeout(reinicioTimer);
-    reinicioTimer = setTimeout(() => {
-      reinicioArmado = false;
-      boton.textContent = "Reiniciar Steam";
-    }, 6000);
-    return;
-  }
-  clearTimeout(reinicioTimer);
-  reinicioArmado = false;
-  boton.disabled = true;
-  boton.textContent = "Cerrando Steam...";
-  dotaAviso("Cerrando Steam de forma ordenada. Puede tardar medio minuto: sube tus datos a la nube antes de irse.", "ojo");
-  try {
-    await accionDota("/dota/reiniciar-steam", {});
-    dotaAviso(
-      "Steam reiniciado. Si te pide iniciar sesión, hazlo y entra a Dota: los controles del perfil ya están puestos.",
-      "ok"
-    );
-  } catch (err) {
-    dotaAviso(err.message, "error");
-  }
-  boton.textContent = "Reiniciar Steam";
-  boton.disabled = false;
-  await cargarDota();
+function deshacerDota() {
+  const cuenta = cuentaElegida();
+  if (!cuenta) return;
+  return conBloqueo(async () => {
+    dotaAviso("Deshaciendo y reiniciando Steam.", "ojo");
+    try {
+      const r = await accionDota("/dota/deshacer", { cuenta: cuenta.id });
+      dotaAviso(`Controles de ${r.destino?.persona ?? cuenta.id} devueltos a como estaban.`, "ok");
+    } catch (err) {
+      dotaAviso(err.message, "error");
+    }
+  });
 }
 
-async function borrarPerfilDota(p) {
-  try {
-    await accionDota("/dota/borrar", { perfil: p.id });
-    await cargarDota();
-    dotaAviso(`Perfil "${p.nombre ?? p.id}" borrado.`, "ok");
-  } catch (err) {
-    dotaAviso(err.message, "error");
-  }
+function borrarPerfilDota(p) {
+  return conBloqueo(async () => {
+    try {
+      await accionDota("/dota/borrar", { perfil: p.id });
+      dotaAviso(`Perfil "${p.nombre ?? p.id}" borrado.`, "ok");
+    } catch (err) {
+      dotaAviso(err.message, "error");
+    }
+  });
 }
 
 function abrirDota() {
@@ -818,6 +793,7 @@ function abrirDota() {
   pintarDota();
   cargarDota();
 }
+
 
 function pintar(estado) {
   // Con una vista del menu abierta, la partida no roba la pantalla.
@@ -1047,7 +1023,7 @@ $("dota-cerrar").addEventListener("click", () => {
 });
 $("dota-cuenta").addEventListener("change", pintarDota);
 $("dota-nuevo").addEventListener("click", guardarPerfilDota);
-$("dota-steam").addEventListener("click", reiniciarSteam);
+$("dota-deshacer").addEventListener("click", deshacerDota);
 $("dota-nombre").addEventListener("keydown", (ev) => {
   if (ev.key === "Enter") guardarPerfilDota();
 });

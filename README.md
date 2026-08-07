@@ -47,11 +47,11 @@ npm run dist        # construye instalador NSIS + exe portable en dist/
 5. `src/tracker.js` — el nucleo: conecta, detecta (websocket + sondeo de respaldo), enriquece jugadores, calcula senales y emite eventos.
 6. `src/cli.js` — consumidor de consola. `src/serve.js` + `src/ui/` — servidor local con SSE y la interfaz (`src/server.js` es el CLI).
 7. `electron/main.js` — la app de escritorio: misma UI en ventana propia.
-8. `src/dota.js` — perfiles de controles de Dota 2. Dota guarda los controles fuera del juego, en `Steam\userdata\<steamid3>\570\` (`remote\` va a Steam Cloud, `local\` es de esta maquina). Un perfil es una copia de esos archivos en `%APPDATA%\GRIEF\dota-perfiles`; como no llevan nada atado a la cuenta, sirven igual en cualquiera. Aplicar exige Dota cerrado (al salir reescribe los controles) y siempre guarda antes un respaldo de lo que habia.
+8. `src/dota.js` — perfiles de controles de Dota 2. Dota guarda los controles fuera del juego, en `Steam\userdata\<steamid3>\570\` (`remote\` va a Steam Cloud, `local\` es de esta maquina). Un perfil es una copia de esos archivos; como no llevan nada atado a la cuenta, sirven igual en cualquiera. En `%APPDATA%\GRIEF\dota-perfiles`: `perfiles\` los que guardas tu (los unicos que se listan), `respaldos\<cuenta>\` copias internas para Deshacer, `estado.json` que perfil hay puesto en cada cuenta.
 
-   La vista trae tambien un **reinicio de Steam** (`steam.exe -shutdown`, espera a que el proceso muera y lo relanza), que es el paso que hace falta despues de aplicar para que la nube no devuelva la version vieja. Pide dos clics y se niega con Dota abierto.
+   **Usar un perfil es un solo paso**: respalda lo que hay, escribe, reinicia Steam (`steam.exe -shutdown`, espera a que el proceso muera y lo relanza) y vuelve a escribir. Ese ultimo volcado es lo que hace que el perfil siga puesto pase lo que pase con la nube. Sin confirmaciones; se niega solo con Dota abierto, porque al salir reescribe los controles.
 
-   Las **dos capas de controles viajan juntas**: dentro de `dotakeys_personal.lst` los globales estan en los bloques `Keys` e `Items` y los de cada heroe en `Units`, asi que copiar el archivo se las lleva las dos. La app lee ese KeyValues solo para contarlas y enseñar en cada ficha cuantos controles globales y que heroes con teclas propias trae el perfil.
+   Las **dos capas de controles viajan juntas**: dentro de `dotakeys_personal.lst` los globales estan en los bloques `Keys` e `Items` y los de cada heroe en `Units`, asi que copiar el archivo se las lleva las dos. Al aplicar se enciende ademas `UseHeroBindings`, el interruptor maestro de la pestaña HEROES: sin el, Dota ignora las teclas por heroe y usa el layout global aunque `Units` este lleno.
 
 El tracker en si sigue sin dependencias npm (Node >= 20 y modulos nativos); electron y electron-builder son solo devDependencies para la app.
 
