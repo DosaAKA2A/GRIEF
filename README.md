@@ -5,13 +5,15 @@ Tracker ligero multi-juego: stats de los jugadores de tu partida antes de empeza
 - **Valorant** (completo): API local del cliente de Riot — mapa y servidor, rangos, RR, KDA, HS%, nivel, parties y senales de cheater/smurf/booster.
 - **League of Legends y TFT**: LCU + Live Client Data, en cualquier cola (reclutamiento, clasificatoria, ARAM, Arena, URF, bots, personalizada) y en TFT. Lobby con los rangos del grupo, seleccion de campeones con ambos equipos y baneos, partida en vivo con KDA, CS/min, vision, objetos, runas, hechizos y objetivos del equipo, y resumen al acabar con daño, oro, CS y vision de los diez.
 
+- **Dota 2** (perfiles de controles): guarda tu configuracion de controles tal como esta y vuelve a ponerla en la cuenta de Steam que quieras, sin copiar carpetas a mano.
+
 La app detecta sola que juego esta vivo y muestra ese.
 
-(Dota 2 se descarto: el cliente moderno no expone el roster del lobby por diseño de Valve — solo era posible tu propio estado via GSI y un informe post-partida, insuficiente para el objetivo de la herramienta.)
+(El *tracker* de Dota 2 se descarto: el cliente moderno no expone el roster del lobby por diseño de Valve — solo era posible tu propio estado via GSI y un informe post-partida, insuficiente para el objetivo de la herramienta.)
 
 ## Estado
 
-Fase 4: multi-juego (Valorant / LoL) en app de escritorio (Electron), consola y UI en navegador.
+Fase 4: multi-juego (Valorant / LoL) en app de escritorio (Electron), consola y UI en navegador. Ademas, gestor de perfiles de controles de Dota 2.
 
 ## Uso
 
@@ -45,6 +47,7 @@ npm run dist        # construye instalador NSIS + exe portable en dist/
 5. `src/tracker.js` — el nucleo: conecta, detecta (websocket + sondeo de respaldo), enriquece jugadores, calcula senales y emite eventos.
 6. `src/cli.js` — consumidor de consola. `src/serve.js` + `src/ui/` — servidor local con SSE y la interfaz (`src/server.js` es el CLI).
 7. `electron/main.js` — la app de escritorio: misma UI en ventana propia.
+8. `src/dota.js` — perfiles de controles de Dota 2. Dota guarda los controles fuera del juego, en `Steam\userdata\<steamid3>\570\` (`remote\` va a Steam Cloud, `local\` es de esta maquina). Un perfil es una copia de esos archivos en `%APPDATA%\GRIEF\dota-perfiles`; como no llevan nada atado a la cuenta, sirven igual en cualquiera. Aplicar exige Dota cerrado (al salir reescribe los controles) y siempre guarda antes un respaldo de lo que habia.
 
 El tracker en si sigue sin dependencias npm (Node >= 20 y modulos nativos); electron y electron-builder son solo devDependencies para la app.
 

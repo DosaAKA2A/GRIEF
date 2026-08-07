@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MultiTracker } from "./games.js";
+import * as dota from "./dota.js";
 
 const UI_DIR = join(dirname(fileURLToPath(import.meta.url)), "ui");
 
@@ -52,8 +53,57 @@ export function startServer({ port = 4327 } = {}) {
     broadcast();
   });
 
+  // Cuerpo JSON de las acciones de perfiles. Tope corto: aqui solo viajan
+  // nombres e identificadores, nunca archivos.
+  function leerJson(req) {
+    return new Promise((resolve, reject) => {
+      let datos = "";
+      req.on("data", (c) => {
+        datos += c;
+        if (datos.length > 8192) reject(new Error("cuerpo demasiado grande"));
+      });
+      req.on("end", () => {
+        try {
+          resolve(datos ? JSON.parse(datos) : {});
+        } catch {
+          reject(new Error("json invalido"));
+        }
+      });
+      req.on("error", reject);
+    });
+  }
+
   const server = http.createServer(async (req, res) => {
     const path = req.url.split("?")[0];
+    // Perfiles de controles de Dota 2: leen y escriben en el arbol de Steam de
+    // esta computadora, por eso viven aqui y no en la UI.
+    if (path.startsWith("/dota/")) {
+      const accion = path.slice("/dota/".length);
+      try {
+        let salida;
+        if (accion === "estado") {
+          salida = await dota.estado();
+        } else if (req.method !== "POST") {
+          throw new Error("metodo no permitido");
+        } else if (accion === "guardar") {
+          salida = await dota.guardarPerfil(await leerJson(req));
+        } else if (accion === "aplicar") {
+          salida = await dota.aplicarPerfil(await leerJson(req));
+        } else if (accion === "borrar") {
+          salida = await dota.borrarPerfil(await leerJson(req));
+        } else {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "No existe" }));
+          return;
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(salida));
+      } catch (err) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
     if (path === "/version") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ version: VERSION }));

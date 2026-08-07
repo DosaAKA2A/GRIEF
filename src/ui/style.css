@@ -1175,3 +1175,153 @@ body.oculta *, body.oculta *::before, body.oculta *::after {
 @media (prefers-reduced-motion: reduce) {
   .fase-punto, .vacio-radar .aguja, .jugador, .pie-boton::before { animation: none; }
 }
+
+/* ---- Perfiles de controles de Dota 2 ----
+   Misma retícula que las comps: cabecera con selector de cuenta, una fila
+   para guardar y la lista de perfiles guardados. */
+.dota {
+  width: 100%;
+  max-width: 72.5rem;
+  align-self: start;
+  display: grid;
+  gap: 0.85rem;
+  min-height: 0;
+}
+.dota-cab {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.75rem 1.2rem;
+  background: linear-gradient(120deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+.dota-titulos { flex: 1; min-width: 0; }
+.dota-titulos h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+}
+.dota-sub {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--apagado);
+}
+.dota-filtro { display: flex; flex-direction: column; gap: 0.25rem; }
+.dota-filtro small {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tenue);
+}
+.dota-filtro select {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--claro);
+  background: var(--fondo);
+  border: 1px solid var(--linea);
+  padding: 0.3rem 0.5rem;
+  min-width: 11rem;
+}
+
+.dota-guardar { display: flex; gap: 0.6rem; align-items: stretch; }
+.dota-campo {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--hueso);
+  background: var(--panel-2);
+  border: 1px solid var(--linea);
+  padding: 0.55rem 0.75rem;
+}
+.dota-campo::placeholder { color: var(--tenue); }
+.dota-campo:focus { outline: none; border-color: var(--apagado); }
+
+.dota-boton {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--claro);
+  background: transparent;
+  border: 1px solid var(--linea);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+.dota-boton:hover { border-color: var(--hueso); color: var(--hueso); }
+.dota-boton--primario { color: var(--hueso); border-color: var(--apagado); }
+.dota-boton--primario:hover { background: var(--rojo); border-color: var(--rojo); color: var(--fondo); }
+
+.dota-aviso {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--apagado);
+  border-left: 2px solid var(--linea);
+  padding: 0.4rem 0.7rem;
+  background: var(--panel-2);
+}
+.dota-aviso--ok { color: var(--teal); border-left-color: var(--teal); }
+.dota-aviso--error { color: var(--rojo); border-left-color: var(--rojo); }
+.dota-aviso--ojo { color: var(--hueso); border-left-color: var(--apagado); }
+
+.dota-lista {
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+  overflow-y: auto;
+  max-height: 26rem;
+  padding-right: 0.3rem;
+}
+.dota-item {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.95rem;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--linea);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+}
+.dota-item--auto { opacity: 0.72; }
+.dota-item-cab { display: flex; align-items: baseline; gap: 0.6rem; }
+.dota-item-nombre {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--hueso);
+}
+.dota-item-etiqueta {
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  border: 1px solid var(--linea);
+  padding: 0.1rem 0.35rem;
+}
+.dota-item-detalle,
+.dota-item-partida {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--apagado);
+}
+.dota-item-partida { color: var(--tenue); }
+.dota-item-acciones { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+
+.dota-vacio {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  line-height: 1.6;
+  color: var(--apagado);
+  padding: 1.2rem;
+  border: 1px dashed var(--linea);
+  text-align: center;
+}

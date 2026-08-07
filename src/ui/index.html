@@ -22,6 +22,7 @@
 
   <nav id="menu-panel" class="menu-panel" hidden aria-label="Menu de la app">
     <button id="menu-comps" class="menu-item">Comps de TFT</button>
+    <button id="menu-dota" class="menu-item">Controles de Dota</button>
     <button id="menu-acerca" class="menu-item">Acerca de</button>
     <button id="menu-terminos" class="menu-item">Términos y condiciones</button>
     <button id="menu-actualizar" class="menu-item">Actualizar app</button>
@@ -133,6 +134,29 @@
         <button id="comps-cerrar" class="comps-cerrar" type="button">Volver</button>
       </div>
       <ul id="comps-lista" class="comps-lista"></ul>
+    </section>
+
+    <!-- Perfiles de controles de Dota 2: se abre desde el menu -->
+    <section id="dota" class="dota" hidden>
+      <div class="dota-cab">
+        <div class="dota-titulos">
+          <h1>Controles de Dota</h1>
+          <span id="dota-sub" class="dota-sub"></span>
+        </div>
+        <label class="dota-filtro">
+          <small>Cuenta de Steam</small>
+          <select id="dota-cuenta"></select>
+        </label>
+        <button id="dota-cerrar" class="comps-cerrar" type="button">Volver</button>
+      </div>
+
+      <div class="dota-guardar">
+        <input id="dota-nombre" class="dota-campo" type="text" maxlength="48" placeholder="Nombre del perfil (ej. Arrow, Legacy, mid)">
+        <button id="dota-nuevo" class="dota-boton dota-boton--primario" type="button">Guardar los controles de ahora</button>
+      </div>
+
+      <p id="dota-aviso" class="dota-aviso" hidden></p>
+      <ul id="dota-lista" class="dota-lista"></ul>
     </section>
 
     <section id="equipos" class="equipos" hidden>
