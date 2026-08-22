@@ -132,6 +132,8 @@ function alertas(r) {
 //   historial  deducida: dos jugadores que reaparecen partida tras partida
 //              y siempre en el mismo equipo van juntos. Es lo unico que se
 //              puede hacer con los rivales, y por eso se marca como deducida.
+//              Solo se acepta con pruebas de sobra: un unico indicio suelto
+//              daba falsos positivos y se descarta (decision del usuario).
 //
 // `pares` es lo que devuelve RemoteApi.getCoQueue (puede ser null en la
 // primera pasada, cuando todavia no hay historial descargado).
@@ -140,7 +142,6 @@ export function marcarParties(rows, presences, pares = null) {
     r.party = null;
     r.partySize = null;
     r.partyFuente = null;
-    r.partySeguro = false;
     r.partyPartidas = 0;
   }
 
@@ -173,7 +174,7 @@ export function marcarParties(rows, presences, pares = null) {
     if (miembros.length < 2) continue;
     for (let i = 1; i < miembros.length; i++) {
       unir(miembros[0].puuid, miembros[i].puuid);
-      enlaces.push({ a: miembros[0].puuid, b: miembros[i].puuid, fuente: "presencia", seguro: true, partidas: 0 });
+      enlaces.push({ a: miembros[0].puuid, b: miembros[i].puuid, fuente: "presencia", partidas: 0 });
     }
   }
 
@@ -186,20 +187,17 @@ export function marcarParties(rows, presences, pares = null) {
       const [a, b] = clave.split("|");
       if (!equipo.has(a) || !equipo.has(b)) continue;
       if (equipo.get(a) !== equipo.get(b)) continue;
-      // Fuerte: dos partidas confirmadas en el mismo equipo, o tres juntos
-      // sin haberse visto nunca en bandos contrarios.
-      const fuerte = e.mismo >= 2 || (e.juntas >= 3 && e.contra === 0);
-      // Debil: una sola prueba. Se ensena como "posible", no como party.
-      const debil = e.contra === 0 && (e.mismo === 1 || e.juntas === 2);
-      if (fuerte || debil) candidatos.push({ a, b, e, fuerte });
+      // Dos partidas confirmadas en el mismo equipo, o tres juntos sin
+      // haberse visto nunca en bandos contrarios. Con menos no se marca:
+      // coincidir una vez es de lo mas normal en la misma franja de rango.
+      if (e.mismo >= 2 || (e.juntas >= 3 && e.contra === 0)) candidatos.push({ a, b, e });
     }
-    // Las fuertes mandan; las debiles solo pueden emparejar a dos sueltos,
-    // para que un indicio flojo no infle un duo hasta un cuatro.
-    candidatos.sort((x, y) => Number(y.fuerte) - Number(x.fuerte) || y.e.juntas - x.e.juntas);
+    // La mejor prueba primero: si el tope de 5 obliga a descartar algo, que
+    // sea lo mas flojo.
+    candidatos.sort((x, y) => y.e.juntas - x.e.juntas);
     for (const c of candidatos) {
-      if (!c.fuerte && (tam(buscar(c.a)) > 1 || tam(buscar(c.b)) > 1)) continue;
       if (!unir(c.a, c.b)) continue;
-      enlaces.push({ a: c.a, b: c.b, fuente: "historial", seguro: c.fuerte, partidas: c.e.juntas });
+      enlaces.push({ a: c.a, b: c.b, fuente: "historial", partidas: c.e.juntas });
     }
   }
 
@@ -220,13 +218,11 @@ export function marcarParties(rows, presences, pares = null) {
     const dentro = new Set(grupo.map((r) => r.puuid));
     const suyos = enlaces.filter((l) => dentro.has(l.a) && dentro.has(l.b));
     const deducido = suyos.some((l) => l.fuente === "historial");
-    const seguro = suyos.every((l) => l.seguro);
     const partidas = Math.max(0, ...suyos.map((l) => l.partidas));
     for (const r of grupo) {
       r.party = i + 1;
       r.partySize = grupo.length;
       r.partyFuente = deducido ? "historial" : "presencia";
-      r.partySeguro = seguro;
       r.partyPartidas = partidas;
     }
   });

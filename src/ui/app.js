@@ -92,8 +92,7 @@ function textoParty(r) {
   const base = `Party de ${r.partySize} jugadores`;
   if (r.partyFuente !== "historial") return base;
   const juntas = r.partyPartidas ? ` · ${r.partyPartidas} partidas recientes juntos` : "";
-  const cabeza = r.partySeguro ? base : `Posible party de ${r.partySize} jugadores`;
-  return `${cabeza}, deducida del historial${juntas}`;
+  return `${base}, deducida del historial${juntas}`;
 }
 
 // Fila con columnas fijas: [espina][retrato][insignia][identidad][K/D][RR].
@@ -107,9 +106,6 @@ function filaJugador(r, juego) {
   const espina = el("i", "espina");
   if (r.party) {
     li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
-    // Deducida y con un solo indicio: espina troceada, para no dar por segura
-    // una party que solo es probable.
-    if (r.partyFuente === "historial" && !r.partySeguro) espina.classList.add("probable");
     espina.dataset.tip = textoParty(r);
     espina.style.cursor = "help";
   }

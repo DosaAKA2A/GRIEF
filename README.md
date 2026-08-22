@@ -35,8 +35,9 @@ npm run dist        # construye instalador NSIS + exe portable en dist/
   es inmediato.
 - Parties: la tuya sale del chat local, que es la unica que publica Riot. Las
   de rivales y aliados se DEDUCEN del historial (quienes reaparecen juntos y
-  en el mismo equipo), se marcan como deducidas en el tooltip y, cuando solo
-  hay un indicio, la espina de color sale troceada en vez de maciza.
+  en el mismo equipo) y el tooltip dice que son deducidas. Hace falta prueba
+  de sobra —dos partidas en el mismo equipo, o tres juntos sin haberse visto
+  de rivales—: con un solo indicio no se marca nada.
 - Jugadores en modo incognito salen como `(oculto)`.
 - `npm run ui` acepta `--port N` y `--no-open`.
 - `npm run lol:debug` vuelca lo que responden el LCU y la API en vivo con el
