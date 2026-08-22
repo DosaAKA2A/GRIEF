@@ -85,7 +85,18 @@ function iconoRango(tier, clase) {
   return img;
 }
 
-// Fila con columnas fijas: [espina][retrato][insignia][identidad][KDA][RR].
+// Texto de la espina de party. La propia la publica el cliente de Riot; la de
+// rivales y aliados NO la publica nadie, se deduce del historial, y el texto
+// lo dice para que no se lea como un dato oficial.
+function textoParty(r) {
+  const base = `Party de ${r.partySize} jugadores`;
+  if (r.partyFuente !== "historial") return base;
+  const juntas = r.partyPartidas ? ` · ${r.partyPartidas} partidas recientes juntos` : "";
+  const cabeza = r.partySeguro ? base : `Posible party de ${r.partySize} jugadores`;
+  return `${cabeza}, deducida del historial${juntas}`;
+}
+
+// Fila con columnas fijas: [espina][retrato][insignia][identidad][K/D][RR].
 // Cada dato vive SIEMPRE en la misma posicion; ninguna fila cambia de forma
 // por llevar señales o textos largos.
 function filaJugador(r, juego) {
@@ -96,7 +107,10 @@ function filaJugador(r, juego) {
   const espina = el("i", "espina");
   if (r.party) {
     li.style.setProperty("--party", COLORES_PARTY[(r.party - 1) % COLORES_PARTY.length]);
-    espina.dataset.tip = `Party de ${r.partySize} jugadores`;
+    // Deducida y con un solo indicio: espina troceada, para no dar por segura
+    // una party que solo es probable.
+    if (r.partyFuente === "historial" && !r.partySeguro) espina.classList.add("probable");
+    espina.dataset.tip = textoParty(r);
     espina.style.cursor = "help";
   }
 
@@ -171,18 +185,26 @@ function filaJugador(r, juego) {
 
   // Bloques de estadistica: columnas fijas, los numeros protagonistas.
   const statKda = el("div", "stat");
+  // Valorant ensena K/D (bajas/muertes), como los trackers al uso; LoL sigue
+  // con KDA, que es la medida de su juego.
+  const usaKd = r.kda?.kd != null;
+  const rotuloKd = usaKd ? "K/D" : "KDA";
   if (r.kda) {
-    const valor = r.kda.kda;
-    const b = el("b", valor >= 1.3 ? "bien" : valor <= 0.8 ? "mal" : "", valor.toFixed(2));
-    statKda.append(b, el("small", null, "KDA"));
+    const valor = usaKd ? r.kda.kd : r.kda.kda;
+    const alto = usaKd ? 1.15 : 1.3;
+    const bajo = usaKd ? 0.85 : 0.8;
+    const b = el("b", valor >= alto ? "bien" : valor <= bajo ? "mal" : "", valor.toFixed(2));
+    statKda.append(b, el("small", null, rotuloKd));
     const hs = r.kda.hsRate != null ? Math.round(r.kda.hsRate * 100) : null;
     // sub/tip propios: en LoL el bloque es de la partida en curso, no de un
     // historial, asi que el texto de apoyo lo decide quien manda la fila.
     const sub = r.kda.sub ?? (hs != null ? `HS ${hs}%` : `${r.kda.games} partidas`);
     statKda.append(el("span", "sub" + (hs != null && hs >= 30 ? " alto" : ""), sub));
-    statKda.dataset.tip = r.kda.tip ?? `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas`;
+    const kdaExtra = usaKd ? ` · KDA ${r.kda.kda.toFixed(2)}` : "";
+    statKda.dataset.tip =
+      r.kda.tip ?? `${r.kda.kills}/${r.kda.deaths}/${r.kda.assists} en ${r.kda.games} partidas${kdaExtra}`;
   } else {
-    statKda.append(el("b", "vacio", "—"), el("small", null, "KDA"));
+    statKda.append(el("b", "vacio", "—"), el("small", null, rotuloKd));
   }
 
   li.append(espina, retrato, insignia, cuerpo, statKda);
@@ -257,9 +279,9 @@ function filaPartida(p) {
 
   const stats = el("div", "partida-stats");
   const kdaTxt = `${p.k}/${p.d}/${p.a}`;
-  const ratio = p.d > 0 ? (p.k + p.a) / p.d : p.k + p.a;
+  const ratio = p.d > 0 ? p.k / p.d : p.k; // K/D, igual que el resto de la app
   for (const [valor, rotulo, clase] of [
-    [kdaTxt, "KDA", ratio >= 1.3 ? "bien" : ratio <= 0.8 ? "mal" : ""],
+    [kdaTxt, "KDA", ratio >= 1.15 ? "bien" : ratio <= 0.85 ? "mal" : ""],
     [p.acs, "ACS", ""],
     [p.adr, "ADR", ""],
     [p.hs != null ? p.hs + "%" : null, "HS", p.hs >= 30 ? "alto" : ""],
@@ -419,7 +441,12 @@ function pintarPerfilValorant(p) {
   const tiles = [];
   if (k) {
     tiles.push(
-      tilePerfil(k.kda.toFixed(2), "KDA", `${k.kills}/${k.deaths}/${k.assists}`, k.kda >= 1.3 ? "bien" : k.kda <= 0.8 ? "mal" : ""),
+      tilePerfil(
+        (k.kd ?? k.kills / Math.max(1, k.deaths)).toFixed(2),
+        "K/D",
+        `${k.kills}/${k.deaths}/${k.assists} · KDA ${k.kda.toFixed(2)}`,
+        (k.kd ?? 0) >= 1.15 ? "bien" : (k.kd ?? 0) <= 0.85 ? "mal" : ""
+      ),
       tilePerfil(k.hsRate != null ? Math.round(k.hsRate * 100) + "%" : null, "HS", "headshots", k.hsRate >= 0.3 ? "alto" : ""),
       tilePerfil(k.adr != null ? Math.round(k.adr) : null, "ADR", "daño por ronda"),
       tilePerfil(k.acs != null ? Math.round(k.acs) : null, "ACS", "combat score"),

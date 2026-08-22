@@ -2,7 +2,7 @@
 
 Tracker ligero multi-juego: stats de los jugadores de tu partida antes de empezar. Sin overlay in-game, sin tocar el proceso del juego, sin Overwolf.
 
-- **Valorant** (completo): API local del cliente de Riot — mapa y servidor, rangos, RR, KDA, HS%, nivel, parties y senales de cheater/smurf/booster.
+- **Valorant** (completo): API local del cliente de Riot — mapa y servidor, rangos, RR, K/D, HS%, nivel, parties (las tuyas y las deducidas de rivales y aliados) y senales de cheater/smurf/booster.
 - **League of Legends y TFT**: LCU + Live Client Data, en cualquier cola (reclutamiento, clasificatoria, ARAM, Arena, URF, bots, personalizada) y en TFT. Lobby con los rangos del grupo, seleccion de campeones con ambos equipos y baneos, partida en vivo con KDA, CS/min, vision, objetos, runas, hechizos y objetivos del equipo, y resumen al acabar con daño, oro, CS y vision de los diez.
 
 - **Dota 2** (perfiles de controles): guarda tu configuracion de controles tal como esta y vuelve a ponerla en la cuenta de Steam que quieras, sin copiar carpetas a mano.
@@ -28,9 +28,15 @@ npm run dist        # construye instalador NSIS + exe portable en dist/
 ```
 
 - En seleccion de agentes muestra tu equipo (5) y refresca con cada pick.
-- En partida muestra los 10 con equipo, agente, rango actual, RR, peak y KDA
-  de las ultimas 10 competitivas: (K+A)/D. El KDA llega unos segundos despues
-  del resto (match-details pesa ~1 MB por partida); con cache es inmediato.
+- En partida muestra los 10 con equipo, agente, rango actual, RR, peak y K/D
+  de las ultimas 10 competitivas: bajas/muertes, la misma medida que ensenan
+  los trackers al uso (el KDA con asistencias esta en el tooltip). Llega unos
+  segundos despues del resto (match-details pesa ~1 MB por partida); con cache
+  es inmediato.
+- Parties: la tuya sale del chat local, que es la unica que publica Riot. Las
+  de rivales y aliados se DEDUCEN del historial (quienes reaparecen juntos y
+  en el mismo equipo), se marcan como deducidas en el tooltip y, cuando solo
+  hay un indicio, la espina de color sale troceada en vez de maciza.
 - Jugadores en modo incognito salen como `(oculto)`.
 - `npm run ui` acepta `--port N` y `--no-open`.
 - `npm run lol:debug` vuelca lo que responden el LCU y la API en vivo con el

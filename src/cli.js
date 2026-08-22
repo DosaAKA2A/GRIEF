@@ -13,7 +13,7 @@ function pad(s, n) {
 function printMatch({ label, rows }) {
   console.log(`\nFase: ${label} — ${rows.length} jugadores\n`);
   console.log(
-    pad("EQUIPO", 8) + pad("PARTY", 7) + pad("JUGADOR", 26) + pad("AGENTE", 14) + pad("RANGO", 16) + pad("RR", 5) + pad("KDA", 6) + pad("PEAK", 16) + "SENAL"
+    pad("EQUIPO", 8) + pad("PARTY", 7) + pad("JUGADOR", 26) + pad("AGENTE", 14) + pad("RANGO", 16) + pad("RR", 5) + pad("K/D", 6) + pad("PEAK", 16) + "SENAL"
   );
   console.log("-".repeat(104));
   for (const r of rows) {
@@ -24,7 +24,7 @@ function printMatch({ label, rows }) {
         pad(r.agent, 14) +
         pad(r.tierLabel, 16) +
         pad(r.rr, 5) +
-        pad(r.kda ? r.kda.kda.toFixed(2) : "-", 6) +
+        pad(r.kda ? (r.kda.kd ?? r.kda.kda).toFixed(2) : "-", 6) +
         pad(r.peakLabel, 16) +
         (r.alertas?.map((a) => a.texto).join(", ") || "")
     );

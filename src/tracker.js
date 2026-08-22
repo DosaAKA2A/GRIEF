@@ -47,14 +47,18 @@ const MODOS = {
 function alertas(r) {
   if (!r.kda || r.kda.games < 5) return [];
   const out = [];
-  const { kda, hsRate, games } = r.kda;
+  const { hsRate, games } = r.kda;
+  // Se juzga por K/D (bajas/muertes), no por KDA: el KDA suma asistencias y
+  // en Valorant deja a casi todo el mundo por encima de 1.5, con lo que los
+  // umbrales saltaban con jugadores normales.
+  const kd = r.kda.kd ?? r.kda.kills / Math.max(1, r.kda.deaths);
   const hs = hsRate != null ? Math.round(hsRate * 100) : null;
 
-  if (hs != null && (hs >= 40 || (hs >= 35 && kda >= 1.3))) {
+  if (hs != null && (hs >= 40 || (hs >= 35 && kd >= 1.1))) {
     out.push({
       tipo: "cheater",
       texto: "Posible Cheater",
-      detalle: `${hs}% de headshots con KDA ${kda.toFixed(2)} en sus últimas ${games} partidas`,
+      detalle: `${hs}% de headshots con K/D ${kd.toFixed(2)} en sus últimas ${games} partidas`,
     });
   }
 
@@ -72,12 +76,12 @@ function alertas(r) {
     score += 1;
     razones.push("nivel oculto");
   }
-  if (kda >= 1.8) {
+  if (kd >= 1.35) {
     score += 2;
-    razones.push(`KDA ${kda.toFixed(2)}`);
-  } else if (kda >= 1.4) {
+    razones.push(`K/D ${kd.toFixed(2)}`);
+  } else if (kd >= 1.15) {
     score += 1;
-    razones.push(`KDA ${kda.toFixed(2)}`);
+    razones.push(`K/D ${kd.toFixed(2)}`);
   }
   if (hs != null && hs >= 28 && hs < 35) {
     score += 1;
@@ -103,7 +107,7 @@ function alertas(r) {
     score += 2;
     razones.push(`solo ${r.seasonsPlayed} temporada${r.seasonsPlayed === 1 ? "" : "s"} y ${r.totalGames} partidas en total`);
   }
-  if (r.peak - r.tier >= 6 && kda >= 1.5) {
+  if (r.peak - r.tier >= 6 && kd >= 1.2) {
     score += 2;
     razones.push(`peak ${r.peakLabel} muy por encima de su rango actual`);
   }
@@ -111,14 +115,122 @@ function alertas(r) {
     out.push({ tipo: "smurf", texto: "Posible Smurf", detalle: razones.join(" · ") });
   }
 
-  if (r.tier >= 18 && kda <= 0.7) {
+  if (r.tier >= 18 && kd <= 0.65) {
     out.push({
       tipo: "booster",
       texto: "Posible Booster",
-      detalle: `KDA ${kda.toFixed(2)} en ${r.tierLabel}: rinde muy por debajo de su rango (cuenta boosteada)`,
+      detalle: `K/D ${kd.toFixed(2)} en ${r.tierLabel}: rinde muy por debajo de su rango (cuenta boosteada)`,
     });
   }
   return out;
+}
+
+// Marca las parties sobre las filas. Hay dos fuentes y no dan lo mismo:
+//
+//   presencia  el chat local publica el partyId REAL, pero solo de los tuyos
+//              y de tus amigos. De los rivales no llega nada.
+//   historial  deducida: dos jugadores que reaparecen partida tras partida
+//              y siempre en el mismo equipo van juntos. Es lo unico que se
+//              puede hacer con los rivales, y por eso se marca como deducida.
+//
+// `pares` es lo que devuelve RemoteApi.getCoQueue (puede ser null en la
+// primera pasada, cuando todavia no hay historial descargado).
+export function marcarParties(rows, presences, pares = null) {
+  for (const r of rows) {
+    r.party = null;
+    r.partySize = null;
+    r.partyFuente = null;
+    r.partySeguro = false;
+    r.partyPartidas = 0;
+  }
+
+  const padre = new Map(rows.map((r) => [r.puuid, r.puuid]));
+  const buscar = (x) => {
+    while (padre.get(x) !== x) x = padre.get(x);
+    return x;
+  };
+  const tam = (raiz) => rows.filter((r) => buscar(r.puuid) === raiz).length;
+  const unir = (a, b) => {
+    const ra = buscar(a);
+    const rb = buscar(b);
+    if (ra === rb) return false;
+    if (tam(ra) + tam(rb) > 5) return false; // una party no pasa de 5
+    padre.set(ra, rb);
+    return true;
+  };
+
+  const enlaces = [];
+
+  // 1) Lo seguro primero: partyId real de las presencias.
+  const porParty = new Map();
+  for (const r of rows) {
+    const pr = presences.get(r.puuid);
+    if (!pr?.partyId) continue;
+    if (!porParty.has(pr.partyId)) porParty.set(pr.partyId, []);
+    porParty.get(pr.partyId).push(r);
+  }
+  for (const miembros of porParty.values()) {
+    if (miembros.length < 2) continue;
+    for (let i = 1; i < miembros.length; i++) {
+      unir(miembros[0].puuid, miembros[i].puuid);
+      enlaces.push({ a: miembros[0].puuid, b: miembros[i].puuid, fuente: "presencia", seguro: true, partidas: 0 });
+    }
+  }
+
+  // 2) Lo deducido. Una party nunca cruza de equipo, asi que las parejas de
+  //    equipos distintos ni se miran.
+  if (pares) {
+    const equipo = new Map(rows.map((r) => [r.puuid, r.team]));
+    const candidatos = [];
+    for (const [clave, e] of pares) {
+      const [a, b] = clave.split("|");
+      if (!equipo.has(a) || !equipo.has(b)) continue;
+      if (equipo.get(a) !== equipo.get(b)) continue;
+      // Fuerte: dos partidas confirmadas en el mismo equipo, o tres juntos
+      // sin haberse visto nunca en bandos contrarios.
+      const fuerte = e.mismo >= 2 || (e.juntas >= 3 && e.contra === 0);
+      // Debil: una sola prueba. Se ensena como "posible", no como party.
+      const debil = e.contra === 0 && (e.mismo === 1 || e.juntas === 2);
+      if (fuerte || debil) candidatos.push({ a, b, e, fuerte });
+    }
+    // Las fuertes mandan; las debiles solo pueden emparejar a dos sueltos,
+    // para que un indicio flojo no infle un duo hasta un cuatro.
+    candidatos.sort((x, y) => Number(y.fuerte) - Number(x.fuerte) || y.e.juntas - x.e.juntas);
+    for (const c of candidatos) {
+      if (!c.fuerte && (tam(buscar(c.a)) > 1 || tam(buscar(c.b)) > 1)) continue;
+      if (!unir(c.a, c.b)) continue;
+      enlaces.push({ a: c.a, b: c.b, fuente: "historial", seguro: c.fuerte, partidas: c.e.juntas });
+    }
+  }
+
+  // 3) Numeracion estable (por el puuid mas bajo del grupo) y etiquetas.
+  const grupos = new Map();
+  for (const r of rows) {
+    const raiz = buscar(r.puuid);
+    if (!grupos.has(raiz)) grupos.set(raiz, []);
+    grupos.get(raiz).push(r);
+  }
+  const conParty = [...grupos.values()].filter((g) => g.length >= 2);
+  conParty.sort((g1, g2) => {
+    const a = g1.map((r) => r.puuid).sort()[0];
+    const b = g2.map((r) => r.puuid).sort()[0];
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
+  conParty.forEach((grupo, i) => {
+    const dentro = new Set(grupo.map((r) => r.puuid));
+    const suyos = enlaces.filter((l) => dentro.has(l.a) && dentro.has(l.b));
+    const deducido = suyos.some((l) => l.fuente === "historial");
+    const seguro = suyos.every((l) => l.seguro);
+    const partidas = Math.max(0, ...suyos.map((l) => l.partidas));
+    for (const r of grupo) {
+      r.party = i + 1;
+      r.partySize = grupo.length;
+      r.partyFuente = deducido ? "historial" : "presencia";
+      r.partySeguro = seguro;
+      r.partyPartidas = partidas;
+    }
+  });
+  return rows;
 }
 
 const POLL_MS = 10000; // sin websocket
@@ -248,17 +360,18 @@ export class Tracker extends EventEmitter {
       "|" +
       match.players.map((p) => `${p.Subject}:${p.CharacterID ?? ""}:${p.TeamID ?? ""}`).join(",");
     if (sig === this.#sig) return;
-    const [rows, mapa] = await Promise.all([this.#enrich(match.players), mapInfo(match.mapId)]);
+    const [enriquecido, mapa] = await Promise.all([this.#enrich(match.players), mapInfo(match.mapId)]);
+    const { rows, presences } = enriquecido;
     const servidor = podCiudad(match.pod);
     const modo = MODOS[match.queue] ?? null;
     this.#sig = sig;
     this.emit("match", { phase: match.phase, label: PHASE_LABELS[match.phase], rows, mapa, servidor, modo });
     // El KDA de las ultimas 10 competitivas es lento (match-details pesa);
     // se rellena en segundo plano y se re-emite. Con cache, casi siempre vuela.
-    this.#fillKda(rows, sig, match.phase, mapa, servidor, modo);
+    this.#fillKda(rows, presences, sig, match.phase, mapa, servidor, modo);
   }
 
-  async #fillKda(rows, sig, phase, mapa, servidor, modo) {
+  async #fillKda(rows, presences, sig, phase, mapa, servidor, modo) {
     const api = this.api;
     const [kdas, comps] = await Promise.all([
       Promise.all(rows.map((r) => api.getKda(r.puuid).catch(() => null))),
@@ -270,6 +383,11 @@ export class Tracker extends EventEmitter {
       r.comp = comps[i];
       r.alertas = alertas(r);
     });
+    // Con el historial ya en cache se pueden deducir las parties de rivales y
+    // aliados; hasta aqui solo estaban las que publica el chat local.
+    const pares = await api.getCoQueue(rows.map((r) => r.puuid)).catch(() => null);
+    if (this.#sig !== sig) return;
+    marcarParties(rows, presences, pares);
     this.emit("match", { phase, label: PHASE_LABELS[phase], rows, mapa, servidor, modo });
   }
 
@@ -406,27 +524,10 @@ export class Tracker extends EventEmitter {
       return row;
     });
 
-    // Parties: agrupa por partyId de las presencias; solo marca las de 2+
-    // miembros dentro de la partida. Numeracion estable ordenando por ID.
-    const porParty = new Map();
-    for (const r of rows) {
-      const pr = presences.get(r.puuid);
-      if (pr?.partyId) {
-        if (!porParty.has(pr.partyId)) porParty.set(pr.partyId, []);
-        porParty.get(pr.partyId).push(r);
-      }
-    }
-    let n = 0;
-    for (const partyId of [...porParty.keys()].sort()) {
-      const members = porParty.get(partyId);
-      if (members.length < 2) continue;
-      n++;
-      for (const r of members) {
-        r.party = n;
-        r.partySize = members.length;
-      }
-    }
-    return rows;
+    // Parties: de entrada solo las seguras (presencias). Las deducidas del
+    // historial llegan con el KDA, cuando ya hay partidas descargadas.
+    marcarParties(rows, presences);
+    return { rows, presences };
   }
 
   #kick() {

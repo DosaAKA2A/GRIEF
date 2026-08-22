@@ -9,6 +9,7 @@ const nameCache = new TtlCache(6 * 3600e3);
 const mmrCache = new TtlCache(10 * 60e3);
 const kdaCache = new TtlCache(30 * 60e3);
 const matchStatsCache = new TtlCache(2 * 3600e3);
+const historyCache = new TtlCache(15 * 60e3);
 const rrCache = new TtlCache(10 * 60e3);
 
 // Limitador global para match-details: cada respuesta pesa ~1 MB y sin esto
@@ -130,12 +131,19 @@ export class RemoteApi {
     return res?.Progress?.Level ?? null;
   }
 
-  // IDs de las ultimas partidas competitivas del jugador.
-  async getHistory(puuid, count = 10) {
+  // IDs de las ultimas partidas del jugador. Con cola, solo las de esa cola.
+  // Cacheado: el historial lo piden el KDA y la deteccion de parties.
+  async getHistory(puuid, count = 10, queue = "competitive") {
+    const clave = `${puuid}|${count}|${queue ?? "todas"}`;
+    const hit = historyCache.get(clave);
+    if (hit !== undefined) return hit;
+    const cola = queue ? `&queue=${queue}` : "";
     const res = await this.#tryGet(
-      `${this.pd}/match-history/v1/history/${puuid}?startIndex=0&endIndex=${count}&queue=competitive`
+      `${this.pd}/match-history/v1/history/${puuid}?startIndex=0&endIndex=${count}${cola}`
     );
-    return (res?.History ?? []).map((h) => h.MatchID);
+    const ids = (res?.History ?? []).map((h) => h.MatchID);
+    historyCache.set(clave, ids);
+    return ids;
   }
 
   // K/D/A e impactos (cabeza/cuerpo/piernas) de todos los jugadores de una
@@ -155,6 +163,7 @@ export class RemoteApi {
         score: p.stats?.score ?? 0,
         rounds: p.stats?.roundsPlayed ?? rondas,
         won: ganadores.has(p.teamId),
+        team: p.teamId ?? null,
         character: (p.characterId ?? "").toLowerCase() || null,
         dmg: 0,
         head: 0,
@@ -184,6 +193,60 @@ export class RemoteApi {
     };
     matchStatsCache.set(matchId, stats);
     return stats;
+  }
+
+  // Pruebas de "van juntos" para cada pareja de la partida.
+  //
+  // Riot NO publica la party de los rivales ni la de los aliados que no sean
+  // tuyos: el chat local solo conoce a los tuyos y a tus amigos. Lo unico que
+  // queda es deducirlo del historial, que si es publico: los premades
+  // reaparecen partida tras partida y siempre en el mismo equipo.
+  //
+  // Para cada pareja se cuenta:
+  //   juntas  partidas recientes compartidas (de cualquier cola)
+  //   mismo   de esas, en las que iban en el mismo equipo
+  //   contra  de esas, en las que iban en equipos contrarios
+  // El equipo solo se sabe de las partidas cuyo detalle ya esta en cache (las
+  // competitivas que baja el KDA); las demas solo cuentan como compartidas.
+  //
+  // Coste: una peticion de historial por jugador (ligera). Los detalles NO se
+  // piden aqui, se aprovechan los que ya bajo getKda.
+  async getCoQueue(puuids, count = 20) {
+    const historias = await Promise.all(
+      puuids.map((p) => this.getHistory(p, count, null).catch(() => []))
+    );
+    // matchId -> lista de jugadores de ESTA partida que aparecen en el
+    const porPartida = new Map();
+    historias.forEach((ids, i) => {
+      for (const id of ids) {
+        if (!porPartida.has(id)) porPartida.set(id, []);
+        porPartida.get(id).push(puuids[i]);
+      }
+    });
+    const pares = new Map();
+    for (const [matchId, jugadores] of porPartida) {
+      // Una partida con medio lobby repetido (revancha) no prueba nada de
+      // ninguna pareja en concreto: se descarta como prueba.
+      if (jugadores.length < 2 || jugadores.length > 5) continue;
+      const det = matchStatsCache.get(matchId) ?? null;
+      for (let i = 0; i < jugadores.length; i++) {
+        for (let j = i + 1; j < jugadores.length; j++) {
+          const a = jugadores[i];
+          const b = jugadores[j];
+          const clave = a < b ? `${a}|${b}` : `${b}|${a}`;
+          const e = pares.get(clave) ?? { juntas: 0, mismo: 0, contra: 0 };
+          e.juntas++;
+          const ta = det?.jugadores?.[a]?.team ?? null;
+          const tb = det?.jugadores?.[b]?.team ?? null;
+          if (ta && tb) {
+            if (ta === tb) e.mismo++;
+            else e.contra++;
+          }
+          pares.set(clave, e);
+        }
+      }
+    }
+    return pares;
   }
 
   // Version sincrona: solo lo que ya este en cache (para no perder el KDA
@@ -228,7 +291,10 @@ export class RemoteApi {
     return out;
   }
 
-  // KDA agregado de las ultimas partidas competitivas: (K+A)/D.
+  // Rendimiento agregado de las ultimas competitivas. Devuelve las DOS
+  // medidas, que no son lo mismo y se confundian:
+  //   kd   bajas / muertes          <- lo que ensenan los trackers al uso
+  //   kda  (bajas + asistencias) / muertes
   // null si el jugador no tiene historial accesible.
   async getKda(puuid, count = 10) {
     const hit = kdaCache.get(puuid);
@@ -255,6 +321,7 @@ export class RemoteApi {
     const shots = head + body + legs;
     const out = games
       ? {
+          kd: kills / Math.max(1, deaths),
           kda: (kills + assists) / Math.max(1, deaths),
           kills,
           deaths,

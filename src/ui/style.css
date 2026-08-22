@@ -979,6 +979,15 @@ body::before {
   flex: 0 0 5px;
   background: var(--party, var(--linea));
 }
+/* Party deducida del historial con un solo indicio: espina troceada, para que
+   se distinga de un vistazo de la que el cliente confirma. */
+.jugador .espina.probable {
+  background: repeating-linear-gradient(
+    180deg,
+    var(--party, var(--linea)) 0 7px,
+    transparent 7px 13px
+  );
+}
 
 .jugador .retrato {
   flex: 0 0 3.6rem;
