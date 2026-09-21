@@ -6,14 +6,14 @@
   <title>GRIEF — Game Tracker · lee la partida antes de jugarla</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="canonical" href="https://grief.es/">
-  <meta name="description" content="GRIEF, el game tracker de IRIS Studio para Valorant y League of Legends: rangos, KDA, ADR, parties y señales de smurfs antes de que empiece la partida. Sin overlay, sin Overwolf.">
+  <meta name="description" content="GRIEF, el game tracker de IRIS Studio para Valorant y League of Legends: rangos, K/D, parties y señales de smurfs antes de que empiece la partida. Además, perfiles de controles para Dota 2. Sin overlay, sin Overwolf.">
   <meta name="theme-color" content="#0f1923">
 
   <!-- Open Graph: como se ve el enlace al compartirlo (Discord, X, WhatsApp) -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="GRIEF — Game Tracker">
   <meta property="og:title" content="GRIEF — Game Tracker de Valorant y League of Legends">
-  <meta property="og:description" content="Lee la partida antes de jugarla: rangos, KDA, ADR, parties y señales de smurfs, sin overlay. Un tracker de IRIS Studio.">
+  <meta property="og:description" content="Lee la partida antes de jugarla: rangos, K/D, parties y señales de smurfs en Valorant y League of Legends, y tus controles de Dota 2 en cualquier cuenta. Sin overlay. Un tracker de IRIS Studio.">
   <meta property="og:url" content="https://grief.es/">
   <meta property="og:image" content="https://grief.es/img/og.png">
   <meta property="og:image:width" content="1200">
@@ -21,7 +21,7 @@
   <meta property="og:locale" content="es_LA">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="GRIEF — Game Tracker de Valorant y League of Legends">
-  <meta name="twitter:description" content="Lee la partida antes de jugarla: rangos, KDA, ADR, parties y señales de smurfs, sin overlay.">
+  <meta name="twitter:description" content="Lee la partida antes de jugarla: rangos, K/D, parties y señales de smurfs, sin overlay. Y tus controles de Dota 2, guardados.">
   <meta name="twitter:image" content="https://grief.es/img/og.png">
   <style>
     @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/geist-mono-400.woff2") format("woff2"); }
@@ -144,7 +144,7 @@
     h2 { font-family: var(--display); font-weight: 700; font-size: 1.7rem; letter-spacing: -0.01em; line-height: 1.2; }
 
     /* Juegos */
-    .juegos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; margin-top: 2rem; }
+    .juegos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2rem; }
     .juego {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid var(--linea);
@@ -155,6 +155,7 @@
     .juego .estado-j { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; padding: 0.14rem 0.45rem; border: 1px solid; margin-left: 0.6rem; vertical-align: 0.15em; }
     .estado-j.completo { color: var(--teal); border-color: var(--teal); }
     .estado-j.parcial { color: #e8a33c; border-color: #e8a33c; }
+    .estado-j.controles { color: var(--apagado); border-color: var(--apagado); }
     .juego p { color: var(--apagado); font-size: 0.86rem; margin-top: 0.7rem; }
 
     /* Rasgos */
@@ -221,8 +222,11 @@
       50% { background-position: 3% 2%, -2% -1%; }
     }
 
+    @media (max-width: 900px) {
+      .juegos { grid-template-columns: 1fr; }
+    }
     @media (max-width: 760px) {
-      .juegos, .rasgos { grid-template-columns: 1fr; }
+      .rasgos { grid-template-columns: 1fr; }
       nav { display: none; }
     }
 
@@ -247,20 +251,20 @@
     </header>
 
     <section class="hero">
-      <p class="eyebrow">Valorant · League of Legends</p>
+      <p class="eyebrow"><span style="white-space:nowrap">Valorant</span> · <span style="white-space:nowrap">League of Legends</span> · <span style="white-space:nowrap">Dota 2</span></p>
       <h1>Lee la partida <em>antes</em> de jugarla.</h1>
-      <p class="sub">GRIEF vive en tu segunda pantalla y te muestra quién es cada uno en tu lobby: rango real, KDA reciente, parties y señales de smurfs o cuentas boosteadas. Sin overlay, sin tocar el juego, sin Overwolf.</p>
+      <p class="sub">GRIEF vive en tu segunda pantalla y te muestra quién es cada uno en tu lobby: rango real, K/D reciente, parties y señales de smurfs o cuentas boosteadas. Y en Dota 2 guarda tus controles para ponerlos en cualquier cuenta de Steam. Sin overlay, sin tocar el juego, sin Overwolf.</p>
       <div class="botones" id="descargar">
         <a class="btn btn-rojo" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF-Setup.exe">Descargar para Windows</a>
         <a class="btn btn-borde" href="https://github.com/DosaAKA2A/GRIEF/releases/latest/download/GRIEF-Portable.exe">Versión portable</a>
       </div>
       <p class="nota">Gratis · Windows 10/11 · código abierto</p>
       <figure class="captura"><img src="img/captura-valorant.png" alt="GRIEF mostrando una partida de Valorant con rangos, KDA, ADR y señales por jugador" width="2268" height="1332"></figure>
-      <p class="pie-captura">Partida de Valorant: mapa, modo y servidor, los 10 con rango, RR, K/D, ADR y señales</p>
+      <p class="pie-captura">Partida de Valorant: mapa, modo y servidor, los 10 con rango, RR, rendimiento reciente y señales</p>
     </section>
 
     <section id="juegos">
-      <p class="eyebrow-seccion reveal">Dos juegos, una app</p>
+      <p class="eyebrow-seccion reveal">Tres juegos, una app</p>
       <h2 class="reveal">Detecta solo el juego que abras.</h2>
       <div class="juegos">
         <div class="juego reveal">
@@ -268,8 +272,12 @@
           <p>Desde la selección de agentes: mapa y servidor, rango e insignia, RR, peak, K/D y HS% de las últimas partidas, nivel de cuenta, parties marcadas por color (la tuya confirmada, las de rivales y aliados deducidas del historial) y señales de posible cheater, smurf o booster.</p>
         </div>
         <div class="juego reveal">
-          <span class="titulo">LEAGUE OF LEGENDS</span><span class="estado-j completo">Activo</span>
-          <p>En selección de campeones ves a tu equipo con rango, LP y emblema; en partida, los 10 con su campeón, el lado que te tocó y su KDA en vivo.</p>
+          <span class="titulo">LEAGUE OF LEGENDS</span><span class="estado-j completo">Completo</span>
+          <p>En cualquier cola, de la clasificatoria al ARAM, Arena o URF. En el lobby, los rangos de tu grupo; en selección, ambos equipos con sus baneos; en partida, los 10 con KDA, CS por minuto, visión, objetos, runas y los objetivos del mapa; y al terminar, el resumen de daño, oro y visión. En TFT ves la mesa con sus rangos y parties.</p>
+        </div>
+        <div class="juego reveal">
+          <span class="titulo">DOTA 2</span><span class="estado-j controles">Controles</span>
+          <p>Guarda tu configuración de controles tal como está y vuelve a ponerla en la cuenta de Steam que quieras, con un botón y sin copiar carpetas. GRIEF reinicia Steam por ti para que se aplique, y te avisa al abrir si un parche o la nube te han cambiado alguna tecla.</p>
         </div>
       </div>
       <figure class="captura reveal" style="margin-top:3rem"><img src="img/captura-lol.png" alt="GRIEF mostrando una partida de League of Legends con ambos equipos, campeones, emblemas clásicos y KDA en vivo" width="2268" height="1332" loading="lazy"></figure>
@@ -282,15 +290,15 @@
       <div class="rasgos">
         <div class="rasgo reveal">
           <h3>Señales, no acusaciones</h3>
-          <p>Posible Cheater, Posible Smurf y Posible Booster se calculan combinando varias pistas: HS%, RR por victoria, antigüedad de la cuenta y resultados recientes. El motivo exacto aparece al pasar el mouse.</p>
+          <p>Posible Cheater, Posible Smurf y Posible Booster se calculan combinando varias pistas: HS%, K/D, RR por victoria, antigüedad de la cuenta y resultados recientes. El motivo exacto aparece al pasar el mouse.</p>
         </div>
         <div class="rasgo reveal">
           <h3>Parties a la vista</h3>
-          <p>Mismo color en la espina de la fila: van juntos. Funciona incluso con jugadores en modo incógnito y con el equipo rival.</p>
+          <p>Mismo color en la espina de la fila: van juntos. La tuya la confirma el cliente; las de rivales y aliados se deducen del historial, y GRIEF distingue lo confirmado de lo deducido.</p>
         </div>
         <div class="rasgo reveal">
           <h3>Detección al instante</h3>
-          <p>En cuanto arranca la selección de agentes o campeones, la tabla aparece sola. Nada que refrescar, nada que esperar.</p>
+          <p>En cuanto arranca la selección de agentes o campeones, la tabla aparece sola. Riot y Steam viven en dos botones de la barra: cambias de uno a otro sin pasar por menús.</p>
         </div>
         <div class="rasgo reveal">
           <h3>Sin overlay, sin riesgos</h3>
@@ -302,7 +310,7 @@
         </div>
         <div class="rasgo reveal">
           <h3>Tus datos, en tu PC</h3>
-          <p>No hay cuenta, no hay servidores nuestros y no hay rastreo: todo queda en tu computadora.</p>
+          <p>No hay cuenta, no hay rastreo y los perfiles de Dota se guardan en tu equipo. Cuando hay una versión nueva, el chip de versión de la barra se convierte en el botón para instalarla.</p>
         </div>
       </div>
     </section>
